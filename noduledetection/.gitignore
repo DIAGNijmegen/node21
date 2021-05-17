@@ -103,3 +103,9 @@ ENV/
 
 # Pycharm
 .idea/
+
+*.tar.gz
+3D_image_processing.ipynb
+output/
+Example_algorithm_test.ipynb
+test/

@@ -1,8 +1,6 @@
 #FROM pytorch/pytorch
 FROM python:3.7-slim
 
-
-
 RUN groupadd -r algorithm && useradd -m --no-log-init -r -g algorithm algorithm
 
 RUN mkdir -p /opt/algorithm /input /output \
@@ -19,6 +17,8 @@ RUN  pip install --upgrade pip
 
 COPY --chown=algorithm:algorithm requirements.txt /opt/algorithm/
 COPY --chown=algorithm:algorithm model /opt/algorithm/
+COPY --chown=algorithm:algorithm resnet50-19c8e357.pth  /home/algorithm/.cache/torch/hub/checkpoints/resnet50-19c8e357.pth
+
 
 RUN python -m pip install --user -rrequirements.txt
 
