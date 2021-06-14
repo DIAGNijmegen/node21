@@ -18,6 +18,7 @@ import training_utils.utils as utils
 from training_utils.dataset import CXRNoduleDataset, get_transform
 import os
 from training_utils.train import train_one_epoch
+import itertools
 
 class Noduledetection(DetectionAlgorithm):
     def __init__(self, train=False):
@@ -67,8 +68,13 @@ class Noduledetection(DetectionAlgorithm):
         scored_candidates = self.predict(input_image=input_image)
         self._case_results = scored_candidates
         
-        
+    #--------------------Write your retrain function here ------------
     def retrain(self, input_dir, output_dir, num_epochs = 2):
+        '''
+        input_dir: Input directory containing all the images to train with
+        output_dir: output_dir to write model to.
+        num_epochs: Number of epochs for training the algorithm.
+        '''
         # create training dataset and defined transformations
         self.model.train() 
         dataset = CXRNoduleDataset(input_dir, os.path.join(input_dir, 'metadata.csv'), get_transform(train=True))
@@ -92,12 +98,17 @@ class Noduledetection(DetectionAlgorithm):
             lr_scheduler.step()
             # evaluate on the test dataset
             
-        # save retrained version  
-        torch.save(self.model.state_dict(), os.path.join(output_dir, "model_v2"))
+        # save retrained version frequently.
+        torch.save(self.model.state_dict(), os.path.join(output_dir, "model_retrained"))
       
 
-    def format_to_GC(self, np_prediction, spacing, z_coord = 0.5) -> Dict:
+    def format_to_GC(self, np_prediction, spacing) -> Dict:
         '''
+        Convenient function returns detection prediction in required grand-challenge format.
+        See:
+        https://comic.github.io/grandchallenge.org/components.html#grandchallenge.components.models.InterfaceKind.interface_type_annotation
+        
+        
         np_prediction: dictionary with keys boxes and scores.
         np_prediction[boxes] holds coordinates in the format as x1,y1,x2,y2
         spacing :  pixel spacing for x and y coordinates.
@@ -105,6 +116,7 @@ class Noduledetection(DetectionAlgorithm):
         return:
         a Dict in line with grand-challenge.org format.
         '''
+        
         data = {}
         data['type']="Multiple 2D bounding boxes"
         data['boxes'] = []
@@ -113,16 +125,22 @@ class Noduledetection(DetectionAlgorithm):
             box['corners']=[]
             x_y_spacing = [spacing[0], spacing[1], spacing[0], spacing[1]]
             x_min, y_min, x_max, y_max = bb*x_y_spacing
-            bottom_left = [x_min, y_min,  z_coord] 
-            bottom_right = [x_max, y_min,  z_coord]
-            top_left = [x_min, y_max,  z_coord]
-            top_right = [x_max, y_max,  z_coord]
+            bottom_left = [x_min, y_min,  np_prediction['slice'][i]] 
+            bottom_right = [x_max, y_min,  np_prediction['slice'][i]]
+            top_left = [x_min, y_max,  np_prediction['slice'][i]]
+            top_right = [x_max, y_max,  np_prediction['slice'][i]]
             box['corners'].extend([top_right, top_left, bottom_left, bottom_right])
             box['probability'] = float(np_prediction['scores'][i])
             data['boxes'].append(box)
         data['version'] = { "major": 1, "minor": 0}
         
         return data
+    
+    def merge_dict(self, results):
+        merged_d = {}
+        for k in results[0].keys():
+            merged_d[k] = list(itertools.chain(*[d[k] for d in results]))
+        return merged_d
         
     def predict(self, *, input_image: SimpleITK.Image) -> DataFrame:
         self.model.eval() 
@@ -130,21 +148,32 @@ class Noduledetection(DetectionAlgorithm):
         image_data = SimpleITK.GetArrayFromImage(input_image)
         spacing = input_image.GetSpacing()
         image_data = np.array(image_data)
-        shape = image_data.shape
-
-        # Pre-process the image
-        image = transform.resize(image_data, (1024, 1024))  # resize all images to 1024 x 1024 in shape
-        #the range should be from 0 to 1.
-        image = image.astype(np.float32) / np.max(image)  # normalize
-        image = np.expand_dims(image, axis=0)
-        tensor_image = torch.from_numpy(image).to(self.device).reshape(1, 1024, 1024)
-        with torch.no_grad():
-            prediction = self.model([tensor_image.to(self.device)])
+        
+        if len(image_data.shape)==2:
+            image_data = np.expand_dims(image_data, -1)
             
-        # convert predictions from tensor to numpy array.
-        np_prediction = {str(key):[i.cpu().numpy() for i in val]
-               for key, val in prediction[0].items()}
-        data = self.format_to_GC(np_prediction, spacing)
+        results = []
+        # operate on 3D image (CXRs are stacked together)
+        for j in range(image_data.shape[-1]):
+            # Pre-process the image
+            image = transform.resize(image_data[:,:,j], (1024, 1024))  # resize all images to 1024 x 1024 in shape
+            #the range should be from 0 to 1.
+            image = image.astype(np.float32) / np.max(image)  # normalize
+            image = np.expand_dims(image, axis=0)
+            tensor_image = torch.from_numpy(image).to(self.device).reshape(1, 1024, 1024)
+            with torch.no_grad():
+                prediction = self.model([tensor_image.to(self.device)])
+
+            # convert predictions from tensor to numpy array.
+            np_prediction = {str(key):[i.cpu().numpy() for i in val]
+                   for key, val in prediction[0].items()}
+            np_prediction['slice'] = len(np_prediction['boxes'])*[j]
+            results.append(np_prediction)
+        
+        predictions = self.merge_dict(results)
+        data = self.format_to_GC(predictions, spacing)
+
+        
         return data
 
 if __name__ == "__main__":

@@ -12,9 +12,7 @@ docker run --rm \
         -v noduledetection-output:/output/ \
         noduledetection
 
-docker run --rm \
-        -v noduledetection-output:/output/ \
-        python:3.7-slim cat /output/results.json | python -m json.tool
+docker run --rm -v noduledetection-output:/output/ python:3.7-slim cat /output/nodule.json | python -m json.tool
 
 docker run --rm \
         -v noduledetection-output:/output/ \

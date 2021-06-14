@@ -27,20 +27,12 @@ RUN python -m pip install --user -rrequirements.txt
 
 COPY --chown=algorithm:algorithm process.py /opt/algorithm/
 
-RUN echo $0 $@
 
 ENTRYPOINT ["bash", "entrypoint.sh"]
 
-#ENTRYPOINT python -m process /input /output $@ #$0 
-
-#ENTRYPOINT ["python3.7", "process.py"]
-
 ## ALGORITHM LABELS ##
-
-# These labels are required
 LABEL nl.diagnijmegen.rse.algorithm.name=noduledetection
-
-# These labels are required and describe what kind of hardware your algorithm requires to run.
+# These labels are required and describe what kind of hardware your algorithm requires to run for grand-challenge.
 LABEL nl.diagnijmegen.rse.algorithm.hardware.cpu.count=2
 LABEL nl.diagnijmegen.rse.algorithm.hardware.cpu.capabilities=()
 LABEL nl.diagnijmegen.rse.algorithm.hardware.memory=12G
