@@ -16,15 +16,24 @@ RUN python -m pip install --user -U pip
 RUN  pip install --upgrade pip
 
 COPY --chown=algorithm:algorithm requirements.txt /opt/algorithm/
+COPY --chown=algorithm:algorithm entrypoint.sh /opt/algorithm/
+
 COPY --chown=algorithm:algorithm model /opt/algorithm/
 COPY --chown=algorithm:algorithm resnet50-19c8e357.pth  /home/algorithm/.cache/torch/hub/checkpoints/resnet50-19c8e357.pth
+COPY --chown=algorithm:algorithm training_utils /opt/algorithm/training_utils
 
 
 RUN python -m pip install --user -rrequirements.txt
 
 COPY --chown=algorithm:algorithm process.py /opt/algorithm/
 
-ENTRYPOINT python -m process $0 $@
+RUN echo $0 $@
+
+ENTRYPOINT ["bash", "entrypoint.sh"]
+
+#ENTRYPOINT python -m process /input /output $@ #$0 
+
+#ENTRYPOINT ["python3.7", "process.py"]
 
 ## ALGORITHM LABELS ##
 

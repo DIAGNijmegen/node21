@@ -69,16 +69,15 @@ class Noduledetection(DetectionAlgorithm):
         
         
     def retrain(self, input_dir, output_dir, num_epochs = 2):
-        print('training phase starting.')
         # create training dataset and defined transformations
         self.model.train() 
         dataset = CXRNoduleDataset(input_dir, os.path.join(input_dir, 'metadata.csv'), get_transform(train=True))
-        
+
         # define training and validation data loaders
         data_loader = torch.utils.data.DataLoader(
             dataset, batch_size=2, shuffle=True, num_workers=4,
             collate_fn=utils.collate_fn)
-   
+    
         # construct an optimizer
         params = [p for p in self.model.parameters() if p.requires_grad]
         optimizer = torch.optim.SGD(params, lr=0.005,
@@ -87,19 +86,16 @@ class Noduledetection(DetectionAlgorithm):
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
                                                        step_size=3,
                                                        gamma=0.1)        
-
         for epoch in range(num_epochs):
             train_one_epoch(self.model, optimizer, data_loader, self.device, epoch, print_freq=10)
             # update the learning rate
             lr_scheduler.step()
             # evaluate on the test dataset
             
-        # save retrained version   
+        # save retrained version  
         torch.save(self.model.state_dict(), os.path.join(output_dir, "model_v2"))
       
 
-    
-    
     def format_to_GC(self, np_prediction, spacing, z_coord = 0.5) -> Dict:
         '''
         np_prediction: dictionary with keys boxes and scores.
@@ -122,6 +118,7 @@ class Noduledetection(DetectionAlgorithm):
             top_left = [x_min, y_max,  z_coord]
             top_right = [x_max, y_max,  z_coord]
             box['corners'].extend([top_right, top_left, bottom_left, bottom_right])
+            box['probability'] = float(np_prediction['scores'][i])
             data['boxes'].append(box)
         data['version'] = { "major": 1, "minor": 0}
         
@@ -152,25 +149,24 @@ class Noduledetection(DetectionAlgorithm):
 
 if __name__ == "__main__":
     import argparse
-    try:
-        parser = argparse.ArgumentParser(
-            prog='process.py',
-            description=
-                'Reads all images from an input directory and produces '
-                'results in an output directory')
-        parser.add_argument('--train', action='store_true', help = "Algorithm on train mode.")
-        parser.add_argument('--input_dir', help = "input directory to process")
-        parser.add_argument('--output_dir', help = "output directory generate result files in")
-        parsed_args = parser.parse_args()
-        print('train is ', parsed_args.train)
-        if parsed_args.train:
-            Noduledetection(parsed_args.train).retrain(parsed_args.input_dir, parsed_args.output_dir)
-        else:
-            Noduledetection().process()
+    parser = argparse.ArgumentParser(
+        prog='process.py',
+        description=
+            'Reads all images from an input directory and produces '
+            'results in an output directory')
+
+    parser.add_argument('input_dir', help = "input directory to process")
+    parser.add_argument('output_dir', help = "output directory generate result files in")
+    parser.add_argument('--train', action='store_true', help = "Algorithm on train mode.")
+
+    parsed_args = parser.parse_args()    
+    if parsed_args.train:
+        Noduledetection(parsed_args.train).retrain(parsed_args.input_dir, parsed_args.output_dir)
+    else:
+        Noduledetection().process()
             
     
-    except:
-        Noduledetection().process()
+   
     
     
     
