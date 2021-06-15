@@ -10,8 +10,7 @@ def generate_2d(X_ct, p_lambda = 0.85):
     We have chosen β=0.85 for our experiments after performing a visual comparison with real chest X-rays.
     '''
     X_ct[X_ct > 400] = 400
-    X_ct[X_ct < -500] = -500
-    X_ct[X_ct < -1024] = -1024
+    X_ct[X_ct < -1000] = -1000
     X_ct += 1024
     # 1424 524 698.748232
     X_ct = X_ct/1000.0
