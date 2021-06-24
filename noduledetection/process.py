@@ -21,7 +21,7 @@ from training_utils.train import train_one_epoch
 import itertools
 
 class Noduledetection(DetectionAlgorithm):
-    def __init__(self, train=False):
+    def __init__(self, train=False, evaluate = False):
         super().__init__(
             validators=dict(
                 input_image=(
@@ -39,12 +39,23 @@ class Noduledetection(DetectionAlgorithm):
         in_features = self.model.roi_heads.box_predictor.cls_score.in_features
         self.model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
         
-        self.model.load_state_dict(
-        torch.load(
-            "model",
-            map_location=self.device,
-            )
-        ) 
+        if not (train or evaluate):
+            print('loading the model from container:')
+            self.model.load_state_dict(
+            torch.load(
+                "model",
+                map_location=self.device,
+                )
+            ) 
+            
+        if evaluate:
+            self.model.load_state_dict(
+            torch.load(
+                "/input/model_retrained",
+                map_location=self.device,
+                )
+            ) 
+            
         self.model.to(self.device)
             
         
@@ -69,7 +80,7 @@ class Noduledetection(DetectionAlgorithm):
         self._case_results = scored_candidates
         
     #--------------------Write your retrain function here ------------
-    def retrain(self, input_dir, output_dir, num_epochs = 2):
+    def train(self, input_dir, output_dir, num_epochs = 2):
         '''
         input_dir: Input directory containing all the images to train with
         output_dir: output_dir to write model to.
@@ -143,6 +154,7 @@ class Noduledetection(DetectionAlgorithm):
         return merged_d
         
     def predict(self, *, input_image: SimpleITK.Image) -> DataFrame:
+        print('predict function running')
         self.model.eval() 
         
         image_data = SimpleITK.GetArrayFromImage(input_image)
@@ -150,17 +162,18 @@ class Noduledetection(DetectionAlgorithm):
         image_data = np.array(image_data)
         
         if len(image_data.shape)==2:
-            image_data = np.expand_dims(image_data, -1)
+            image_data = np.expand_dims(image_data, 0)
             
         results = []
         # operate on 3D image (CXRs are stacked together)
-        for j in range(image_data.shape[-1]):
+        for j in range(len(image_data)):
             # Pre-process the image
-            image = transform.resize(image_data[:,:,j], (1024, 1024))  # resize all images to 1024 x 1024 in shape
+            image = image_data[j,:,:]
+            #image = transform.resize(image_data[j,:,:], (1024, 1024))  # resize all images to 1024 x 1024 in shape
             #the range should be from 0 to 1.
             image = image.astype(np.float32) / np.max(image)  # normalize
             image = np.expand_dims(image, axis=0)
-            tensor_image = torch.from_numpy(image).to(self.device).reshape(1, 1024, 1024)
+            tensor_image = torch.from_numpy(image).to(self.device)#.reshape(1, 1024, 1024)
             with torch.no_grad():
                 prediction = self.model([tensor_image.to(self.device)])
 
@@ -172,6 +185,8 @@ class Noduledetection(DetectionAlgorithm):
         
         predictions = self.merge_dict(results)
         data = self.format_to_GC(predictions, spacing)
+        print(data)
+
 
         
         return data
@@ -187,10 +202,12 @@ if __name__ == "__main__":
     parser.add_argument('input_dir', help = "input directory to process")
     parser.add_argument('output_dir', help = "output directory generate result files in")
     parser.add_argument('--train', action='store_true', help = "Algorithm on train mode.")
+    parser.add_argument('--retrain', action='store_true', help = "Algorithm on retrain mode (loading previous weights).")
+    parser.add_argument('--evaluate', action='store_true', help = "Algorithm on evaluate mode after retraining.")
 
     parsed_args = parser.parse_args()    
-    if parsed_args.train:
-        Noduledetection(parsed_args.train).retrain(parsed_args.input_dir, parsed_args.output_dir)
+    if (parsed_args.train or parsed_args.retrain):
+        Noduledetection(parsed_args.train, parsed_args.evaluate).train(parsed_args.input_dir, parsed_args.output_dir)
     else:
         Noduledetection().process()
             
