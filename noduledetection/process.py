@@ -186,9 +186,6 @@ class Noduledetection(DetectionAlgorithm):
         predictions = self.merge_dict(results)
         data = self.format_to_GC(predictions, spacing)
         print(data)
-
-
-        
         return data
 
 if __name__ == "__main__":
