@@ -1,14 +1,15 @@
 # Nodule Generation Algorithm
 
-This codebase implements a baseline model for nodule generation track in [NODE21](https://node21.grand-challenge.org/). For serving this algorithm in a docker container compatible with the requirements of grand-challenge, we followed the [tutorial](https://grand-challenge.org/blogs/create-an-algorithm/). 
+This codebase implements a simple baseline model for nodule generation track in [NODE21](https://node21.grand-challenge.org/). It containes all necessary files to build a docker image from in order to help the participants to create their own algorithm for submission to [NODE21](https://node21.grand-challenge.org/) generation track. 
+
+For serving this algorithm in a docker container compatible with the requirements of grand-challenge, we used [evalutils](https://github.com/comic/evalutils) which provides methods to wrap your algorithm in Docker containers. It automatically generates template scripts for your container files, and creates commands for building, testing, and exporting the algorithm container. We adapted this template code for our algorithm by following the [tutorial](https://grand-challenge.org/blogs/create-an-algorithm/). For learning how to use evalutils, and how to adapt it for your own algorithm, we refer you to the [tutorial](https://grand-challenge.org/blogs/create-an-algorithm/). The details regarding how NODE21 generation algorithm is expected to work is described below.
 
 ## Input and output interfaces
-
 The nodule generation algorithm takes as input a chest X-ray (CXR) and a nodules.json file and produces a CXR after placing nodules at given locations. It reads the input :
 * CXR at "/input/<uuid>.mha"
 * nodules.json file at "/input/nodules.json".
 
-Nodules.json file determines where nodules should be placed on a given CXR. This file contains multiple 2D bounding boxes coordinates in [CIRRUS](https://comic.github.io/grand-challenge.org/components.html#grandchallenge.components.models.InterfaceKind.interface_type_annotation) compatible format, an example json file is as follows:
+Nodules.json file provides information of where nodules should be placed on a given CXR. This file contains multiple 2D bounding boxes coordinates in [CIRRUS](https://comic.github.io/grand-challenge.org/components.html#grandchallenge.components.models.InterfaceKind.interface_type_annotation) compatible format, an example json file is as follows:
 
 {
     "type": "Multiple 2D bounding boxes",
@@ -46,6 +47,11 @@ docker run --rm --memory=11g -v small_test/:/input/ -v nodulegeneration-output:/
 
 To save the container, run the following command:
 docker save nodulegenerator | gzip -c > nodulegeneration.tar.gz
+    
+    
+ ### Submit your algorithm
+ Participants should first upload their algorithm by creating an algorithm on grand-challenge. Please go to the [link](https://grand-challenge.org/algorithms/create/) to create an algorithm as follows:
+    
 
 
 
