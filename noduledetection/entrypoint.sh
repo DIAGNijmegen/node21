@@ -1,6 +1,5 @@
 #!/bin/sh
 
-
 params="$@"
 echo parameters are $params
 
