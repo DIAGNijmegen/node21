@@ -89,7 +89,7 @@ class Noduledetection(DetectionAlgorithm):
         # create training dataset and defined transformations
         self.model.train() 
         dataset = CXRNoduleDataset(input_dir, os.path.join(input_dir, 'metadata.csv'), get_transform(train=True))
-
+        print('training starts ')
         # define training and validation data loaders
         data_loader = torch.utils.data.DataLoader(
             dataset, batch_size=2, shuffle=True, num_workers=4,
@@ -107,10 +107,12 @@ class Noduledetection(DetectionAlgorithm):
             train_one_epoch(self.model, optimizer, data_loader, self.device, epoch, print_freq=10)
             # update the learning rate
             lr_scheduler.step()
+            print('epoch ', str(epoch),' is running')
             # evaluate on the test dataset
             
-        # save retrained version frequently.
-        torch.save(self.model.state_dict(), os.path.join(output_dir, "model_retrained"))
+            # save retrained version frequently.
+            print('saving the model')
+            torch.save(self.model.state_dict(), os.path.join(output_dir, "model_retrained"))
       
 
     def format_to_GC(self, np_prediction, spacing) -> Dict:
