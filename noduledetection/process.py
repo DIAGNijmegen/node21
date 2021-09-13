@@ -34,6 +34,7 @@ class Noduledetection(DetectionAlgorithm):
         
         #------------------------------- LOAD the model here ---------------------------------
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print('using the device ', self.device)
         self.model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False, pretrained_backbone=False)
         num_classes = 2  # 1 class (nodule) + background
         in_features = self.model.roi_heads.box_predictor.cls_score.in_features
