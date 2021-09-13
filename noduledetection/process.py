@@ -21,7 +21,7 @@ from training_utils.train import train_one_epoch
 import itertools
 
 class Noduledetection(DetectionAlgorithm):
-    def __init__(self, train=False, evaluate = False):
+    def __init__(self, train=False, retrain=False, retest=False):
         super().__init__(
             validators=dict(
                 input_image=(
@@ -39,8 +39,9 @@ class Noduledetection(DetectionAlgorithm):
         in_features = self.model.roi_heads.box_predictor.cls_score.in_features
         self.model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
         
-        if not (train or evaluate):
-            print('loading the model from container:')
+        if not (train or retest):
+            # retrain or test phase
+            print('loading the model from container with model file:')
             self.model.load_state_dict(
             torch.load(
                 "model",
@@ -48,7 +49,8 @@ class Noduledetection(DetectionAlgorithm):
                 )
             ) 
             
-        if evaluate:
+        if retest:
+            print('loading the retrained model for retest phase')
             self.model.load_state_dict(
             torch.load(
                 "/input/model_retrained",
@@ -80,7 +82,7 @@ class Noduledetection(DetectionAlgorithm):
         self._case_results = scored_candidates
         
     #--------------------Write your retrain function here ------------
-    def train(self, input_dir, output_dir, num_epochs = 2):
+    def train(self, input_dir, output_dir, num_epochs = 1):
         '''
         input_dir: Input directory containing all the images to train with
         output_dir: output_dir to write model to.
@@ -202,11 +204,11 @@ if __name__ == "__main__":
     parser.add_argument('output_dir', help = "output directory generate result files in")
     parser.add_argument('--train', action='store_true', help = "Algorithm on train mode.")
     parser.add_argument('--retrain', action='store_true', help = "Algorithm on retrain mode (loading previous weights).")
-    parser.add_argument('--evaluate', action='store_true', help = "Algorithm on evaluate mode after retraining.")
+    parser.add_argument('--retest', action='store_true', help = "Algorithm on evaluate mode after retraining.")
 
     parsed_args = parser.parse_args()    
     if (parsed_args.train or parsed_args.retrain):
-        Noduledetection(parsed_args.train, parsed_args.evaluate).train(parsed_args.input_dir, parsed_args.output_dir)
+        Noduledetection(parsed_args.train, parsed_args.retrain, parsed_args.retest).train(parsed_args.input_dir, parsed_args.output_dir)
     else:
         Noduledetection().process()
             
