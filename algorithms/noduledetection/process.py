@@ -19,6 +19,11 @@ from training_utils.dataset import CXRNoduleDataset, get_transform
 import os
 from training_utils.train import train_one_epoch
 import itertools
+from pathlib import Path
+
+# This parameter adapts the paths between local execution and execution in docker. You can use this flag to switch between these two modes.
+# For building your docker, set this parameter to True. If False, it will run process.py locally for test purposes.
+execute_in_docker = True
 
 class Noduledetection(DetectionAlgorithm):
     def __init__(self, train=False, retrain=False, retest=False):
@@ -29,7 +34,8 @@ class Noduledetection(DetectionAlgorithm):
                     UniquePathIndicesValidator(),
                 )
             ),
-            output_file = '/output/nodules.json'
+            input_path = Path("/input/") if execute_in_docker else Path("./test/"),
+            output_file = Path("/output/nodules.json") if execute_in_docker else Path("./output/nodules.json")
         )
         
         #------------------------------- LOAD the model here ---------------------------------
@@ -54,33 +60,31 @@ class Noduledetection(DetectionAlgorithm):
             print('loading the retrained model for retest phase')
             self.model.load_state_dict(
             torch.load(
-                "/input/model_retrained",
+                Path("/input/model_retrained") if execute_in_docker else Path("./output/model_retrained"),
                 map_location=self.device,
                 )
             ) 
             
         self.model.to(self.device)
             
-        
-    def process(self):
-        self.load()
-        self.validate()
-        self.process_cases()
-        self.save()
-
-    def process_cases(self, file_loader_key: str = None):
-        if file_loader_key is None:
-            file_loader_key = self._index_key
-        self._case_results = []
-        for idx, case in self._cases[file_loader_key].iterrows():
-            self.process_case(idx=idx, case=case)
-        
+    # TODO: Copy this function for your processor as well!
     def process_case(self, *, idx, case):
+        '''
+        Read the input, perform model prediction and return the results. 
+        The returned value will be saved as nodules.json by evalutils.
+        process_case method of evalutils
+        (https://github.com/comic/evalutils/blob/fd791e0f1715d78b3766ac613371c447607e411d/evalutils/evalutils.py#L225) 
+        is overwritten here, so that it directly returns the predictions without changing the format.
+        
+        '''
         # Load and test the image for this case
         input_image, input_image_file_path = self._load_input_image(case=case)
+        
         # Detect and score candidates
         scored_candidates = self.predict(input_image=input_image)
-        self._case_results = scored_candidates
+        
+        # Write resulting candidates to nodules.json for this case
+        return scored_candidates
         
     #--------------------Write your retrain function here ------------
     def train(self, input_dir, output_dir, num_epochs = 1):
@@ -89,6 +93,8 @@ class Noduledetection(DetectionAlgorithm):
         output_dir: output_dir to write model to.
         num_epochs: Number of epochs for training the algorithm.
         '''
+        # Implementation of the pytorch model and training functions is based on pytorch tutorial: https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html
+
         # create training dataset and defined transformations
         self.model.train() 
         dataset = CXRNoduleDataset(input_dir, os.path.join(input_dir, 'metadata.csv'), get_transform(train=True))
@@ -115,7 +121,7 @@ class Noduledetection(DetectionAlgorithm):
             
             # save retrained version frequently.
             print('saving the model')
-            torch.save(self.model.state_dict(), os.path.join(output_dir, "model_retrained"))
+            torch.save(self.model.state_dict(), Path("/output/model_retrained") if execute_in_docker else Path("./output/model_retrained"))
       
 
     def format_to_GC(self, np_prediction, spacing) -> Dict:
@@ -132,14 +138,14 @@ class Noduledetection(DetectionAlgorithm):
         return:
         a Dict in line with grand-challenge.org format.
         '''
-        
-        data = {}
-        data['type']="Multiple 2D bounding boxes"
-        data['boxes'] = []
+        # For the test set, we expect the coordinates in millimeters. 
+        # this transformation ensures that the pixel coordinates are transformed to mm.
+        # and boxes coordinates saved according to grand challenge ordering.
+        x_y_spacing = [spacing[0], spacing[1], spacing[0], spacing[1]]
+        boxes = []
         for i, bb in enumerate(np_prediction['boxes']):
             box = {}   
             box['corners']=[]
-            x_y_spacing = [spacing[0], spacing[1], spacing[0], spacing[1]]
             x_min, y_min, x_max, y_max = bb*x_y_spacing
             bottom_left = [x_min, y_min,  np_prediction['slice'][i]] 
             bottom_right = [x_max, y_min,  np_prediction['slice'][i]]
@@ -147,11 +153,10 @@ class Noduledetection(DetectionAlgorithm):
             top_right = [x_max, y_max,  np_prediction['slice'][i]]
             box['corners'].extend([top_right, top_left, bottom_left, bottom_right])
             box['probability'] = float(np_prediction['scores'][i])
-            data['boxes'].append(box)
-        data['version'] = { "major": 1, "minor": 0}
+            boxes.append(box)
         
-        return data
-    
+        return dict(type="Multiple 2D bounding boxes", boxes=boxes, version={ "major": 1, "minor": 0 })
+        
     def merge_dict(self, results):
         merged_d = {}
         for k in results[0].keys():
@@ -159,7 +164,6 @@ class Noduledetection(DetectionAlgorithm):
         return merged_d
         
     def predict(self, *, input_image: SimpleITK.Image) -> DataFrame:
-        print('predict function running')
         self.model.eval() 
         
         image_data = SimpleITK.GetArrayFromImage(input_image)
@@ -174,8 +178,7 @@ class Noduledetection(DetectionAlgorithm):
         for j in range(len(image_data)):
             # Pre-process the image
             image = image_data[j,:,:]
-            #image = transform.resize(image_data[j,:,:], (1024, 1024))  # resize all images to 1024 x 1024 in shape
-            #the range should be from 0 to 1.
+            # The range should be from 0 to 1.
             image = image.astype(np.float32) / np.max(image)  # normalize
             image = np.expand_dims(image, axis=0)
             tensor_image = torch.from_numpy(image).to(self.device)#.reshape(1, 1024, 1024)
