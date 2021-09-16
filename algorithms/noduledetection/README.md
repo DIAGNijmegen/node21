@@ -1,27 +1,30 @@
 # Nodule Detection Algorithm
 
-This codebase implements a baseline model, [Faster RCNN](https://papers.nips.cc/paper/2015/hash/14bfa6bb14875e45bba028a21ed38046-Abstract.html), for nodule detection track in [NODE21](https://node21.grand-challenge.org/). It contains all necessary files to build a docker image from in order to help the participants to create their own algorithm for submission to [NODE21](https://node21.grand-challenge.org/) detection track. 
+This codebase implements a baseline model, [Faster R-CNN](https://papers.nips.cc/paper/2015/hash/14bfa6bb14875e45bba028a21ed38046-Abstract.html), for nodule detection track in [NODE21](https://node21.grand-challenge.org/). It contains all necessary files to build a docker image from in order to help the participants to create their own algorithm for submission to [NODE21](https://node21.grand-challenge.org/) detection track. 
 
 For serving this algorithm in a docker container compatible with the requirements of grand-challenge, we used [evalutils](https://github.com/comic/evalutils) which provides methods to wrap your algorithm in Docker containers. It automatically generates template scripts for your container files, and creates commands for building, testing, and exporting the algorithm container. We adapted this template code for our algorithm by following the [tutorial](https://grand-challenge.org/blogs/create-an-algorithm/). For learning how to use evalutils, and how to adapt it for your own algorithm, we refer you to the [tutorial](https://grand-challenge.org/blogs/create-an-algorithm/). The details regarding how NODE21 detection algorithm is expected to work is described below.
 
 ##### Table of Contents  
-[An overview of the structure of this example](#algorithm)  
-[Interfaces](#interfaces)  
+[An overview of the baseline algorithm](#algorithm)  
 [Configuring the Docker File](#dockerfile)
 [Building your container](#build)  
 [Testing your container](#test)  
 [Export your algorithm container](#export)  
 
-<a name="interfaces"/>
+<a name="algorithm"/>
 
-## Input and output interfaces
-The nodule detection algorithm takes as input a chest X-ray (CXR) and outputs a nodules.json file. It reads the input :
+## An overview of the baseline algorithm
+The baseline nodule detection algorithm is a [Faster R-CNN](https://papers.nips.cc/paper/2015/hash/14bfa6bb14875e45bba028a21ed38046-Abstract.html) model, which was implemented using [pytorch](https://pytorch.org/) library. The main file executed by the docker container is [*process.py*](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/noduledetection/process.py). 
+
+
+### Input and Output Interfaces
+It takes as input a chest X-ray (CXR) and outputs a nodules.json file. It reads the input :
 * CXR at ``` "/input/<uuid>.mha"```
   
  and writes the output to
 * nodules.json file at ``` "/output/nodules.json".```
 
-Nodules.json file contains the predicted bounding box locations per image. This file contains multiple 2D bounding boxes coordinates in [CIRRUS](https://comic.github.io/grand-challenge.org/components.html#grandchallenge.components.models.InterfaceKind.interface_type_annotation) compatible format, an example json file is as follows:
+Nodules.json file contains the predicted bounding box locations associated with the probability (likelihood). This file is a dictionary and contains multiple 2D bounding boxes coordinates in [CIRRUS](https://comic.github.io/grand-challenge.org/components.html#grandchallenge.components.models.InterfaceKind.interface_type_annotation) compatible format, an example json file is as follows:
 ```python
 {
     "type": "Multiple 2D bounding boxes",
@@ -46,6 +49,8 @@ Nodules.json file contains the predicted bounding box locations per image. This 
     "version": { "major": 1, "minor": 0 }
 }
 ```
+The coordinates are expected in milimiters when spacing information is available. We provide a [function](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/noduledetection/process.py#L121) in [*process.py*](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/noduledetection/process.py) which converts the predictions of Faster R-CNN model to this format. 
+
 ### Operating on a 3D image
 
 For the sake of time effeciency in the evaluation process of [NODE21](https://node21.grand-challenge.org/), the submitted algorithms to [NODE21](https://node21.grand-challenge.org/) are expected to operate on a 3D image where multiple CXR images are stacked together. This means that, the algorithms should handle 3D image, by reading a CXR slice by slice. The third coordinate of the bounding box in nodules.json file are used as an identifier of the CXR. If the algorithm processes the first CXR image in 3D volume, the z coordinate would be 0, if it processes the third CXR image, it would be 2.
