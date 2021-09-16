@@ -2,29 +2,28 @@
 
 This codebase implements a baseline model, [Faster R-CNN](https://papers.nips.cc/paper/2015/hash/14bfa6bb14875e45bba028a21ed38046-Abstract.html), for nodule detection track in [NODE21](https://node21.grand-challenge.org/). It contains all necessary files to build a docker image from in order to help the participants to create their own algorithm for submission to [NODE21](https://node21.grand-challenge.org/) detection track. 
 
-For serving this algorithm in a docker container compatible with the requirements of grand-challenge, we used [evalutils](https://github.com/comic/evalutils) which provides methods to wrap your algorithm in Docker containers. It automatically generates template scripts for your container files, and creates commands for building, testing, and exporting the algorithm container. We adapted this template code for our algorithm by following the [tutorial](https://grand-challenge.org/blogs/create-an-algorithm/). For learning how to use evalutils, and how to adapt it for your own algorithm, we refer you to the [tutorial](https://grand-challenge.org/blogs/create-an-algorithm/). The details regarding how NODE21 detection algorithm is expected to work is described below.
+For serving this algorithm in a docker container compatible with the requirements of grand-challenge, we used [evalutils](https://github.com/comic/evalutils) which provides methods to wrap your algorithm in Docker containers. It automatically generates template scripts for your container files, and creates commands for building, testing, and exporting the algorithm container. We adapted this template code for our algorithm by following the [tutorial](https://grand-challenge.org/blogs/create-an-algorithm/). For learning how to use evalutils, and how to adapt it for your own algorithm, we refer you to the [tutorial](https://grand-challenge.org/blogs/create-an-algorithm/). The details regarding how NODE21 detection algorithm is expected to work and submission process is described below.
 
-##### Table of Contents  
+## Table of Contents  
 [An overview of the baseline algorithm](#algorithm)  
-[Configuring the Docker File](#dockerfile)
-[Building your container](#build)  
-[Testing your container](#test)  
-[Export your algorithm container](#export)  
+[Configuring the Docker File](#dockerfile)  
+[Export your algorithm container](#export)   
+[Submit your algorithm](#submit)  
 
 <a name="algorithm"/>
 
 ## An overview of the baseline algorithm
 The baseline nodule detection algorithm is a [Faster R-CNN](https://papers.nips.cc/paper/2015/hash/14bfa6bb14875e45bba028a21ed38046-Abstract.html) model, which was implemented using [pytorch](https://pytorch.org/) library. The main file executed by the docker container is [*process.py*](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/noduledetection/process.py). 
 
-
 ### Input and Output Interfaces
-It takes as input a chest X-ray (CXR) and outputs a nodules.json file. It reads the input :
+The algorithm needs to perform prediction on a given CXR and returns the predicted bounding boxes with associated likelihood. 
+The algorithm takes as input a chest X-ray (CXR) and outputs a nodules.json file. It reads the input :
 * CXR at ``` "/input/<uuid>.mha"```
   
  and writes the output to
 * nodules.json file at ``` "/output/nodules.json".```
 
-Nodules.json file contains the predicted bounding box locations associated with the probability (likelihood). This file is a dictionary and contains multiple 2D bounding boxes coordinates in [CIRRUS](https://comic.github.io/grand-challenge.org/components.html#grandchallenge.components.models.InterfaceKind.interface_type_annotation) compatible format, an example json file is as follows:
+Nodules.json file contains the predicted bounding box locations associated with the probability (likelihood). This file is a dictionary and contains multiple 2D bounding boxes coordinates in [CIRRUS](https://comic.github.io/grand-challenge.org/components.html#grandchallenge.components.models.InterfaceKind.interface_type_annotation) compatible format. The coordinates are expected in milimiters when spacing information is available. We provide a [function](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/noduledetection/process.py#L121) in [*process.py*](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/noduledetection/process.py) which converts the predictions of Faster R-CNN model to this format. An example json file is as follows:
 ```python
 {
     "type": "Multiple 2D bounding boxes",
@@ -49,32 +48,37 @@ Nodules.json file contains the predicted bounding box locations associated with 
     "version": { "major": 1, "minor": 0 }
 }
 ```
-The coordinates are expected in milimiters when spacing information is available. We provide a [function](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/noduledetection/process.py#L121) in [*process.py*](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/noduledetection/process.py) which converts the predictions of Faster R-CNN model to this format. 
+The implementation of the algorithm inference is straightforward: load your model in [*__init__*](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/noduledetection/process.py#L29) function of your class, and implement a function called [*predict*](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/noduledetection/process.py#L166) to perform inference on a chest X-ray. The function [*predict*](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/noduledetection/process.py#L166) is run by evalutils when [process](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/noduledetection/process.py#L217) function is called. Since we want to save the predictions produced by *predict* function direclty as *nodules.json* file, we overwritten the function [*process_case*](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/noduledetection/process.py#L71) of evalutils.  We recommend that you copy this implementation in your file as well.
 
 ### Operating on a 3D image
 
-For the sake of time effeciency in the evaluation process of [NODE21](https://node21.grand-challenge.org/), the submitted algorithms to [NODE21](https://node21.grand-challenge.org/) are expected to operate on a 3D image where multiple CXR images are stacked together. This means that, the algorithms should handle 3D image, by reading a CXR slice by slice. The third coordinate of the bounding box in nodules.json file are used as an identifier of the CXR. If the algorithm processes the first CXR image in 3D volume, the z coordinate would be 0, if it processes the third CXR image, it would be 2.
+For the sake of time effeciency in the evaluation process of [NODE21](https://node21.grand-challenge.org/), the submitted algorithms to [NODE21](https://node21.grand-challenge.org/) are expected to operate on a 3D image where multiple CXR images are stacked together. This means that, the algorithms should handle 3D image, by reading a CXR slice by slice. The third coordinate of the bounding box in nodules.json file are used as an identifier of the CXR. If the algorithm processes the first CXR image in 3D volume, the z coordinate would be 0, if it processes the third CXR image, it would be 2. 
 
-<a name="build"/>
   
 ### Running the container in multiple phases:
-The container images submitted to NODE21 detection track should have the possibility of running in four different phases:
+The container submissions to NODE21 detection track should implement training functionality as well. This should be implemented in [*train*](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/noduledetection/process.py#L90) function which receives the input (containing images and metadata.csv) and output directory as arguments. Input directory is expected to look like this:
+```
+Input_dir/
+├── metadata.csv
+├── Images
+│   ├── 1.mhd
+│   ├── 2.mhd
+│   └── 3.mhd
+```
+The algorithm should train a model by reading the images and associated label file (metadata.csv) from input directory and it should save the model file to the output folder. Model file (*model_retrained*) should be saved to the output folder **frequently** since the containers will be executed in training mode within predefined time-limit, and it can be stopped before the training (defined number of epochs) is completed.
+
+The algorithms should have the possibility of running in four different phases depending on the pretrained model in test or train phase:
 1. ```no arguments``` given (test phase): Load the 'model' file, and test the model on a given image. This is the default mode.
-2. ```--train``` phase: Train the model from scratch given the folder with training images and metadata.csv. Save the model frequently as model_retrained.
-3. ```--retrain``` phase: Load the (pretrained) 'model' file, and retrain the model given the folder with training images and metadata.csv. Save the model frequently as model_retrained.
+2. ```--train``` phase: Train the model from *scratch* given the folder with training images and metadata.csv. Save the model frequently as model_retrained.
+3. ```--retrain``` phase: Load the 'model' file, and retrain the model given the folder with training images and metadata.csv. Save the model frequently as model_retrained.
 4. ```--retest``` phase: Load 'model_retrain' which was created during the training phase, and test it on a given image.
   
-This sounds like too many different phases and looks complicated, but it is not, no worries! This is simply implemented in process.py, and we will walk you though the details of those phases. At the end, you will only need to create a training phase, and all other phases are tiny modifications of the train and test phases. 
+This may look complicated, but it is not, no worries! Once training function is implemented, implementing these phases are few lines of code (see __init__ function). Because, at the end, you will only need to determine which model you will start with to implement these phases: from scratch, model, model_retrained.
 
-As seen in the 'process.py' file, the phase of a docker image is determined by the command line arguments given while running the docker image. If no argument is given, the docker image will run in test phase by default (grand-challenge will run the submitted algorithms in test phase).
+The algorithms submitted to NODE21 detection track will be run in default mode (test phase) by grand-challenge. All other phases will be used for further colloborative experiments for the overview challenge paper.  Participants whose solutions are selected will be invited to be the co-author of the overview challenge paper. 
   
-Selected detection solutions will be run on train and evaluate phase for the overview challenge paper for various experiments. Participants whose solutions are selected will be invited to be the co-author of the overview challenge paper. 
+📌 NOTE: in case the selected solutions cannot be run in the training phase (or --retrain and --retest phases), the participants will be contacted ***for one time only*** to fix their docker image. If the solution is not fixed on time or the participants are not responsive, we will have to exclude their solutions and they will not be eligible for the authorship in the overview paper.
   
-Important NOTE: in case the selected solutions cannot be run in the training phase, the participants will be contacted ***for one time only*** to fix their docker image. If the solution is not fixed on time, we will have to exclude their solutions and they will not be eligible for the authorship in the overview paper.
-  
-  
-should have additonal training phase. We asked the participants to create the docker image with the training option as well as this will be used in case the solution of the participants is selected, and they are invited to be co-author of the challenge overview paper. If the docker images cannot be run in training phase, the participants will be contacted to fix their solution after the challenge deadline, and in case of no colloboration, the participants will not be included 
-
 <a name="dockerfile"/>
 
 ### Configure the Docker file
@@ -106,7 +110,10 @@ torchvision==0.10.0+cu111
 torchaudio==0.9.0
 scikit-image==0.17.2
 ```
-### Building and testing the docker
+
+<a name="export"/>
+
+### Build, test and export your container
 
 Run the following command to build the docker:
  ```python
@@ -123,7 +130,8 @@ To save the container, run the following command:
   docker save noduledetector | gzip -c > noduledetector.tar.gz
  ```
     
-    
+ <a name="submit"/>
+ 
  ### Submit your algorithm
  Once you have your docker image ready (.tar.gz file), you are ready to submit! Let us walk you through the steps you need to follow to upload and submit your algorithm to [NODE21](https://node21.grand-challenge.org/) detection track:
 
