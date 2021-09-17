@@ -116,21 +116,29 @@ scikit-image==0.17.2
 <a name="export"/>
 
 ### Build, test and export your container
+1. To test if all dependencies are met, you could run the file build.bat (Windows) / build.sh (Linux) to build the docker container. Please note that the next step (testing the container) also runs a build, so this step is not necessary if you are certain that everything is set up correctly.
+    
+    *build.sh*/*build.bat* files will run the following command to build the docker for you:
+    ```python 
+    docker build -t noduledetector .
+    ```
 
-Run the following command to build the docker:
- ```python
-docker build -t noduledetector .
- ```
+2. To test the docker container to see if it works as expected, *test.sh*/*test.bat* will run the container on images provided in  ```test/``` folder, and it will check the results (*nodules.json* produced by your algorithm) against ```test/expected_output.json```. Please update your ```test/expected_output.json``` according to your algorithm result when it is run on the test data. 
+    
+    Once you validated that the algorithm works as expected, you might want to simply run the algorithm on the test folder and check nodules.json file (see $SCRIPTPATH/results/), you could use the following command for this: 
+   ```python
+   docker run --rm --memory=11g -v $SCRIPTPATH/test/:/input/ -v $SCRIPTPATH/results/:/output/ noduledetector
+   ```
+   
+   If you would like to run the algorithm on training mode (or any other modes), simply add the corresponding argument as follows:
+   ```python
+   docker run --rm --memory=11g -v $SCRIPTPATH/training_folder/:/input/ -v $SCRIPTPATH/results/:/output/ noduledetector --train
+   ```
 
-To test the docker container, run the following command (map /input to your own test directory):
- ```python
- docker run --rm --memory=11g -v small_test/:/input/ -v nodulegeneration-output:/output/ noduledetector
- ```
-
-To save the container, run the following command:
- ```python
-  docker save noduledetector | gzip -c > noduledetector.tar.gz
- ```
+3. Run *export.sh*/*export.bat* to save the container which run the following command:
+   ```python
+    docker save noduledetector | gzip -c > noduledetector.tar.gz
+   ```
     
  <a name="submit"/>
  
