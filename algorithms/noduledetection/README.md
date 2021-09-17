@@ -78,6 +78,8 @@ This may look complicated, but it is not, no worries! Once training function is 
 The algorithms submitted to NODE21 detection track will be run in default mode (test phase) by grand-challenge. All other phases will be used for further colloborative experiments for the overview challenge paper.  Participants whose solutions are selected will be invited to be the co-author of the overview challenge paper. 
   
 📌 NOTE: in case the selected solutions cannot be run in the training phase (or --retrain and --retest phases), the participants will be contacted ***for one time only*** to fix their docker image. If the solution is not fixed on time or the participants are not responsive, we will have to exclude their solutions and they will not be eligible for the authorship in the overview paper.
+
+💡 To test this container locally without a docker container, you should the **execute_in_docker** flag to False - this sets all paths to relative paths. You should set it back to **True** when you want to switch back to the docker container setting.
   
 <a name="dockerfile"/>
 
