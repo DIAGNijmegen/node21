@@ -15,7 +15,7 @@ docker run --rm \
 docker run --rm -v noduledetection-output:/output/ python:3.7-slim cat /output/nodules.json | python -m json.tool
 
 docker run --rm \
-        -v $SCRIPTPATH/output/:/output/ \
+        -v noduledetection-output:/output/ \
         -v $SCRIPTPATH/test/:/input/ \
         python:3.7-slim python -c "import json, sys; f1 = json.load(open('/output/nodules.json')); f2 = json.load(open('/input/expected_output.json')); sys.exit(f1 != f2);"
 
