@@ -87,7 +87,9 @@ We recommend that you use our [dockerfile](https://github.com/DIAGNijmegen/node2
 ```python
 FROM pytorch/pytorch:1.9.0-cuda11.1-cudnn8-runtime
 ```
-3. Copy all the files you need to run your model : model weights, *requirement.txt*, all the python files you need etc.
+📌 NOTE: The docker images will be run on A100 GPU in the training phase. For pytorch installations, you will need to install CUDA 11.0 instead of 10.2 and reinstall PyTorch for this CUDA version.
+
+2. Copy all the files you need to run your model : model weights, *requirement.txt*, all the python files you need etc.
 ```python
 COPY --chown=algorithm:algorithm requirements.txt /opt/algorithm/
 COPY --chown=algorithm:algorithm entrypoint.sh /opt/algorithm/
@@ -96,7 +98,7 @@ COPY --chown=algorithm:algorithm resnet50-19c8e357.pth  /home/algorithm/.cache/t
 COPY --chown=algorithm:algorithm training_utils /opt/algorithm/training_utils
 ```
 
-5. Install all the dependencies, defined in *reqirements.txt*, in your dockerfile.
+3. Install all the dependencies, defined in *reqirements.txt*, in your dockerfile.
 ```python
 RUN python -m pip install --user -rrequirements.txt
 ```
