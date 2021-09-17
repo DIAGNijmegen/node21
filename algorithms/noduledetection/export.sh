@@ -2,4 +2,4 @@
 
 ./build.sh
 
-docker save noduledetection | gzip -c > noduledetection.tar.gz
+docker save detector | gzip -c > noduledetection.tar.gz

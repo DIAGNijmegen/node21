@@ -10,14 +10,14 @@ docker run --rm \
         --memory=8g \
         -v $SCRIPTPATH/test/:/input/ \
         -v noduledetection-output:/output/ \
-        noduledetection
+        noduledetector
 
-docker run --rm -v noduledetection-output:/output/ python:3.7-slim cat /output/nodule.json | python -m json.tool
+docker run --rm -v noduledetection-output:/output/ python:3.7-slim cat /output/nodules.json | python -m json.tool
 
 docker run --rm \
-        -v noduledetection-output:/output/ \
+        -v $SCRIPTPATH/output/:/output/ \
         -v $SCRIPTPATH/test/:/input/ \
-        python:3.7-slim python -c "import json, sys; f1 = json.load(open('/output/results.json')); f2 = json.load(open('/input/expected_output.json')); sys.exit(f1 != f2);"
+        python:3.7-slim python -c "import json, sys; f1 = json.load(open('/output/nodules.json')); f2 = json.load(open('/input/expected_output.json')); sys.exit(f1 != f2);"
 
 if [ $? -eq 0 ]; then
     echo "Tests successfully passed..."
@@ -26,3 +26,5 @@ else
 fi
 
 docker volume rm noduledetection-output
+
+

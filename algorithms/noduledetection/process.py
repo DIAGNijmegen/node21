@@ -66,6 +66,10 @@ class Noduledetection(DetectionAlgorithm):
             ) 
             
         self.model.to(self.device)
+        
+    def save(self):
+        with open(str(self._output_file), "w") as f:
+            json.dump(self._case_results[0], f)
             
     # TODO: Copy this function for your processor as well!
     def process_case(self, *, idx, case):
