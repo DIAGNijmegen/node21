@@ -1,6 +1,6 @@
 ![alt text](https://github.com/DIAGNijmegen/node21/blob/main/images/node21.PNG)
 
-This repository contains codebase for the baseline algorithms to wrap them in a docker container and evaluation scripts to evaluate the algorithms submissions for NODE21 challenge.
+This repository contains codebase for the baseline algorithms to wrap them in a docker container and evaluation scripts to evaluate the algorithms submissions for [NODE21](https://node21.grand-challenge.org/) challenge.
 
 ## Prerequisites
 * [Docker](https://www.docker.com/get-started)
