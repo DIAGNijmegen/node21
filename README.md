@@ -19,7 +19,7 @@ git clone https://github.com/DIAGNijmegen/node21.git
 In order to pull the model weights for the nodule detection algorithm, please run the following command:
 
 ```python
-git lfs pull noduledetection/model
+git lfs pull algorithms/noduledetection/model
 ```
 
 ## Baseline algorithms
