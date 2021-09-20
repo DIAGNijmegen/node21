@@ -20,7 +20,7 @@ In order to pull the model weights for the nodule detection algorithm, please ru
 
 ```python
 cd node21
-git lfs pull algorithms/noduledetection/model
+git lfs pull
 ```
 
 ## Baseline algorithms
