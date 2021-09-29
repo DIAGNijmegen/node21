@@ -51,7 +51,7 @@ class Noduledetection(DetectionAlgorithm):
             print('loading the model from container with model file:')
             self.model.load_state_dict(
             torch.load(
-                "model",
+                "model.pth",
                 map_location=self.device,
                 )
             ) 
@@ -60,7 +60,7 @@ class Noduledetection(DetectionAlgorithm):
             print('loading the retrained model for retest phase')
             self.model.load_state_dict(
             torch.load(
-                Path("/input/model_retrained") if execute_in_docker else Path("./output/model_retrained"),
+                Path("/input/model_retrained.pth") if execute_in_docker else Path("./output/model_retrained.pth"),
                 map_location=self.device,
                 )
             ) 
@@ -125,7 +125,7 @@ class Noduledetection(DetectionAlgorithm):
             
             # save retrained version frequently.
             print('saving the model')
-            torch.save(self.model.state_dict(), Path("/output/model_retrained") if execute_in_docker else Path("./output/model_retrained"))
+            torch.save(self.model.state_dict(), Path("/output/model_retrained.pth") if execute_in_docker else Path("./output/model_retrained.pth"))
       
 
     def format_to_GC(self, np_prediction, spacing) -> Dict:

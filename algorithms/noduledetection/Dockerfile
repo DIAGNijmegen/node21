@@ -22,7 +22,7 @@ RUN  pip install --upgrade pip
 # All the codes, weights, anything you need to run the algorithm!
 COPY --chown=algorithm:algorithm requirements.txt /opt/algorithm/
 COPY --chown=algorithm:algorithm entrypoint.sh /opt/algorithm/
-COPY --chown=algorithm:algorithm model /opt/algorithm/
+COPY --chown=algorithm:algorithm model.pth /opt/algorithm/
 COPY --chown=algorithm:algorithm resnet50-19c8e357.pth  /home/algorithm/.cache/torch/hub/checkpoints/resnet50-19c8e357.pth
 COPY --chown=algorithm:algorithm training_utils /opt/algorithm/training_utils
 
