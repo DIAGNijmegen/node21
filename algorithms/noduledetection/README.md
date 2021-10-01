@@ -183,7 +183,7 @@ scikit-image==0.17.2
    docker run --rm --memory=11g -v path_to_your_test_folder/:/input/ -v path_to_your_output_folder/:/output/ noduledetector
    ```
    
-   If you would like to run the algorithm on training mode (or any other modes), simply add the corresponding argument as follows:
+   If you would like to run the algorithm on training mode (or any other modes), please make sure your training folder (which is mapped to /input) has *'metadata.csv'* and  ```images/``` folder as decsribed above. You could use the following command for this:
    ```python
    docker run --rm --memory=11g -v path_to_your_training_folder/:/input/ -v path_to_your_output_folder/:/output/ noduledetector --train
    ```
