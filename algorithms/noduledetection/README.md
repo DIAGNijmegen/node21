@@ -92,7 +92,7 @@ If the algorithm processes the first CXR image in 3D volume, the z coordinate ou
 
   
 ### Running the container in multiple phases:
-A selection of NODE21 algorithms will be chosen based on performance and diversity of methodology for further experimentation and inclusion in a peer-reviewed
+A selection of NODE21 algorithms will be chosen, based on performance and diversity of methodology, for further experimentation and inclusion in a peer-reviewed
 article.  The owners of these algorithms (maximum 3 per algorithm) will be co-authors on this publication.  
 For this reason, we request that the container submissions to NODE21 detection track should implement training functionality as well as testing. 
 This should be implemented in the [*train*](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/noduledetection/process.py#L90) function 
@@ -101,11 +101,13 @@ which receives the input (containing images and metadata.csv) and output directo
 Input_dir/
 ├── metadata.csv
 ├── Images
-│   ├── 1.mhd
-│   ├── 2.mhd
-│   └── 3.mhd
+│   ├── 1.mha
+│   ├── 2.mha
+│   └── 3.mha
 ```
-The algorithm should train a model by reading the images and associated label file (metadata.csv) from input directory and it should save the model file to the output folder. Model file (*model_retrained*) should be saved to the output folder **frequently** since the containers will be executed in training mode within predefined time-limit, and it can be stopped before the training (defined number of epochs) is completed.
+The algorithm should train a model by reading the images and associated label file (metadata.csv) from the input directory and it should save the model 
+file to the output folder. The model file (*model_retrained*) should be saved to the output folder **frequently** since the containers will be executed in 
+training mode with a pre-defined time-limit, and training could be stopped before the defined stopping condition is reached.
 
 The algorithms should have the possibility of running in four different phases depending on the pretrained model in test or train phase:
 1. ```no arguments``` given (test phase): Load the 'model' file, and test the model on a given image. This is the default mode.
@@ -113,25 +115,34 @@ The algorithms should have the possibility of running in four different phases d
 3. ```--retrain``` phase: Load the 'model' file, and retrain the model given the folder with training images and metadata.csv. Save the model frequently as model_retrained.
 4. ```--retest``` phase: Load 'model_retrain' which was created during the training phase, and test it on a given image.
   
-This may look complicated, but it is not, no worries! Once training function is implemented, implementing these phases are few lines of code (see __init__ function). Because, at the end, you will only need to determine which model you will start with to implement these phases: from scratch, model, model_retrained.
+This may look complicated, but it is not, no worries! Once the training function is implemented, implementing these phases is just a few lines of code
+(see __init__ function).
 
-The algorithms submitted to NODE21 detection track will be run in default mode (test phase) by grand-challenge. All other phases will be used for further colloborative experiments for the overview challenge paper.  Participants whose solutions are selected will be invited to be the co-author of the overview challenge paper. 
+The algorithms submitted to NODE21 detection track will be run in default mode (test phase) by grand-challenge. 
+All other phases will be used for further collaborative experiments for the peer-reviewed paper.   
   
-📌 NOTE: in case the selected solutions cannot be run in the training phase (or --retrain and --retest phases), the participants will be contacted ***for one time only*** to fix their docker image. If the solution is not fixed on time or the participants are not responsive, we will have to exclude their solutions and they will not be eligible for the authorship in the overview paper.
+📌 NOTE: in case the selected solutions cannot be run in the training phase (or --retrain and --retest phases), the participants will be contacted 
+***one time only*** to fix their docker image. 
+If the solution is not fixed on time or the participants are not responsive, we will have to exclude their algorithm 
+and they will not be eligible for co-authorship in the overview paper.
 
-💡 To test this container locally without a docker container, you should the **execute_in_docker** flag to False - this sets all paths to relative paths. You should set it back to **True** when you want to switch back to the docker container setting.
+💡 To test this container locally without a docker container, you should the **execute_in_docker** flag to 
+False - this sets all paths to relative paths. You should set it back to **True** when you want to switch back to the docker container setting.
+
   
 <a name="dockerfile"/>
 
 ### Configure the Docker file
-We recommend that you use our [dockerfile](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/noduledetection/Dockerfile) as reference, and update it according to your algorithm requirements. There are three main components you need to define in your docker file in order to wrap your algorithm in a docker container:
+We recommend that you use our [dockerfile](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/noduledetection/Dockerfile) as a template, 
+and update it according to your algorithm requirements. There are three main components you need to define in your docker file in order to 
+wrap your algorithm in a docker container:
 1. Choose the right base image (official base image from the library you need (tensorflow, pytorch etc.) recommended)
 ```python
 FROM pytorch/pytorch:1.9.0-cuda11.1-cudnn8-runtime
 ```
 📌 NOTE: The docker images will be run on A100 GPU in the training phase. For pytorch installations, you will need to install CUDA 11.0 instead of 10.2 and reinstall PyTorch for this CUDA version.
 
-2. Copy all the files you need to run your model : model weights, *requirement.txt*, all the python files you need etc.
+2. Copy all the files you need to run your model : model weights, *requirements.txt*, all the python files you need etc.
 ```python
 COPY --chown=algorithm:algorithm requirements.txt /opt/algorithm/
 COPY --chown=algorithm:algorithm entrypoint.sh /opt/algorithm/
