@@ -180,12 +180,12 @@ scikit-image==0.17.2
     
     Once you validated that the algorithm works as expected, you might want to simply run the algorithm on the test folder and check nodules.json file (see $SCRIPTPATH/results/), you could use the following command for this: 
    ```python
-   docker run --rm --memory=11g -v $SCRIPTPATH/test/:/input/ -v $SCRIPTPATH/results/:/output/ noduledetector
+   docker run --rm --memory=11g -v path_to_your_test_folder/:/input/ -v path_to_your_output_folder/:/output/ noduledetector
    ```
    
    If you would like to run the algorithm on training mode (or any other modes), simply add the corresponding argument as follows:
    ```python
-   docker run --rm --memory=11g -v $SCRIPTPATH/training_folder/:/input/ -v $SCRIPTPATH/results/:/output/ noduledetector --train
+   docker run --rm --memory=11g -v path_to_your_training_folder/:/input/ -v path_to_your_output_folder/:/output/ noduledetector --train
    ```
 
 3. Run *export.sh*/*export.bat* to save the container which run the following command:
