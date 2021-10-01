@@ -1,7 +1,7 @@
 # Nodule Detection Algorithm
 
 This codebase implements a baseline model, [Faster R-CNN](https://papers.nips.cc/paper/2015/hash/14bfa6bb14875e45bba028a21ed38046-Abstract.html), 
-for nodule detection track in [NODE21](https://node21.grand-challenge.org/). 
+for the nodule detection track in [NODE21](https://node21.grand-challenge.org/). 
 It contains all necessary files to build a docker image which can be submitted as an algorithm on the [grand-challenge](https://www.grand-challenge.org) platform.
 Participants in the nodule detection track can use this codebase as a template to understand how to create their own algorithm for submission.
 
@@ -87,12 +87,16 @@ For the sake of time efficiency in the evaluation process of [NODE21](https://no
 the submitted algorithms to [NODE21](https://node21.grand-challenge.org/) are expected to operate on a 3D image which consists of multiple CXR images 
 stacked together. The algorithm should go through the slices (CXR images) one by one and process them individually, 
 as shown in [*predict*](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/noduledetection/process.py#L181). 
-When outputting results the third coordinate of the bounding box in nodules.json file is used to identify the CXR from the stack. 
+When outputting results, the third coordinate of the bounding box in nodules.json file is used to identify the CXR from the stack. 
 If the algorithm processes the first CXR image in 3D volume, the z coordinate output should be 0, if it processes the third CXR image, it should be 2, etc. 
 
   
 ### Running the container in multiple phases:
-The container submissions to NODE21 detection track should implement training functionality as well. This should be implemented in [*train*](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/noduledetection/process.py#L90) function which receives the input (containing images and metadata.csv) and output directory as arguments. Input directory is expected to look like this:
+A selection of NODE21 algorithms will be chosen based on performance and diversity of methodology for further experimentation and inclusion in a peer-reviewed
+article.  The owners of these algorithms (maximum 3 per algorithm) will be co-authors on this publication.  
+For this reason, we request that the container submissions to NODE21 detection track should implement training functionality as well as testing. 
+This should be implemented in the [*train*](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/noduledetection/process.py#L90) function 
+which receives the input (containing images and metadata.csv) and output directory as arguments. The input directory is expected to look like this:
 ```
 Input_dir/
 ├── metadata.csv
@@ -187,9 +191,16 @@ scikit-image==0.17.2
    * Please choose a title for your algorithm and add a (squared image) logo. Enter the modalities and structure information as in the example below.
       ![alt text](https://github.com/DIAGNijmegen/node21/blob/main/images/algorithm_description.PNG)
 
-    * Scrolling down the page, you will see that you need to enter the information regarding the interface of the algorithm. Please select *Generic Medical Image (Image)* as Inputs, and *Nodules (Multiple 2D Bounding Boxes)* as Outputs. Do not forget to pick the workstation as *Viewer CIRRUS Core (Public)*. 
-      ![alt text](https://github.com/DIAGNijmegen/node21/blob/main/images/algorithm_interfaces.PNG)
+   * Scrolling down the page, you will see that you need to enter the information regarding the interface of the algorithm. Please select *Generic Medical Image (Image)* as Inputs, and *Nodules (Multiple 2D Bounding Boxes)* as Outputs. 
+   * Do not forget to pick the workstation as *Viewer CIRRUS Core (Public)*.  
+   * Enter the URL of your *GitHub repository* which must contain all your code
+   as well as *an [Apache 2.0 license](https://www.apache.org/licenses/LICENSE-2.0)*
+   
+     ![alt text](https://github.com/DIAGNijmegen/node21/blob/main/images/algorithm_interfaces.PNG)
   
+   * At the bottom of the page, indicate that you would like your Docker image to use GPU and how much memory it needs
+   ![alt text](https://github.com/DIAGNijmegen/node21/blob/main/images/container_img_config.PNG)
+   
 2. After saving it, you are ready to upload your docker container. Choose the container tab, and upload your container. You can also overwrite your container by uploading a new one. That means that when you make changes to your algorithm, you could overwrite your container and submit the updated version of your algorithm to node21:
     ![alt text](https://github.com/DIAGNijmegen/node21/blob/main/images/algorithm_uploadcontainer.PNG)
 

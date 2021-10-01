@@ -7,7 +7,7 @@ This repository contains code related to the [NODE21](https://node21.grand-chall
 If you are (or would like to be) a participant in the challenge you are strongly advised to clone this repository as described below
 and then head to the [algorithms](https://github.com/DIAGNijmegen/node21/tree/main/algorithms/) section to understand how to make your submission.
 
-If you are just curious to see the evaluation code then feel free browse around [the evaluation code](https://github.com/DIAGNijmegen/node21/tree/main/evaluation/)
+If you are just curious to see how evaluation is implemented then feel free to browse around [the evaluation code](https://github.com/DIAGNijmegen/node21/tree/main/evaluation/)
 
 ## Prerequisites
 * [Docker](https://www.docker.com/get-started)
@@ -22,8 +22,6 @@ The alternative is to work purely out of Ubuntu, or any other flavor of Linux.
 Also, note that the basic version of WSL 2 does not come with GPU support. 
 Please watch the [official tutorial](https://www.youtube.com/watch?v=PdxXlZJiuxA) 
 by Microsoft on installing WSL 2 with GPU support.
-
-The alternative is to work purely out of Ubuntu, or any other flavor of Linux. 
 
 Please clone the repository as follows:
 ```python
