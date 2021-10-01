@@ -191,12 +191,12 @@ scikit-image==0.17.2
    * Please choose a title for your algorithm and add a (squared image) logo. Enter the modalities and structure information as in the example below.
       ![alt text](https://github.com/DIAGNijmegen/node21/blob/main/images/algorithm_description.PNG)
 
-   * Scrolling down the page, you will see that you need to enter the information regarding the interface of the algorithm. Please select *Generic Medical Image (Image)* as Inputs, and *Nodules (Multiple 2D Bounding Boxes)* as Outputs. 
-   * Do not forget to pick the workstation as *Viewer CIRRUS Core (Public)*.  
-   * Enter the URL of your *GitHub repository* which must contain all your code
-   as well as *an [Apache 2.0 license](https://www.apache.org/licenses/LICENSE-2.0)*
+   * Scrolling down the page, you will see that you need to enter further information:
+   * Enter the URL of your GitHub repository which must be public, contain all your code and an [Apache 2.0 license](https://www.apache.org/licenses/LICENSE-2.0)
+   * For the interfaces of the algorithm, please select *Generic Medical Image (Image)* as Inputs, and *Nodules (Multiple 2D Bounding Boxes)* as Outputs.
+   * Do not forget to pick the workstation *Viewer CIRRUS Core (Public)*.  
    
-     ![alt text](https://github.com/DIAGNijmegen/node21/blob/main/images/algorithm_interfaces.PNG)
+   ![alt text](https://github.com/DIAGNijmegen/node21/blob/main/images/algorithm_interfaces.PNG)
   
    * At the bottom of the page, indicate that you would like your Docker image to use GPU and how much memory it needs
    ![alt text](https://github.com/DIAGNijmegen/node21/blob/main/images/container_img_config.PNG)
