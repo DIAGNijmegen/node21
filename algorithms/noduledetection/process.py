@@ -151,12 +151,13 @@ class Noduledetection(DetectionAlgorithm):
             box = {}   
             box['corners']=[]
             x_min, y_min, x_max, y_max = bb*x_y_spacing
+            x_min, y_min, x_max, y_max  = round(x_min, 2), round(y_min, 2), round(x_max, 2), round(y_max, 2)
             bottom_left = [x_min, y_min,  np_prediction['slice'][i]] 
             bottom_right = [x_max, y_min,  np_prediction['slice'][i]]
             top_left = [x_min, y_max,  np_prediction['slice'][i]]
             top_right = [x_max, y_max,  np_prediction['slice'][i]]
             box['corners'].extend([top_right, top_left, bottom_left, bottom_right])
-            box['probability'] = float(np_prediction['scores'][i])
+            box['probability'] = round(float(np_prediction['scores'][i]), 2)
             boxes.append(box)
         
         return dict(type="Multiple 2D bounding boxes", boxes=boxes, version={ "major": 1, "minor": 0 })
