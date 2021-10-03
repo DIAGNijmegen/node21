@@ -43,29 +43,36 @@ The nodule generation algorithm takes as input a chest X-ray (CXR) and a nodules
 }
 ```
 
-The algorithm reads the inputs (a medical image and *nodules.json*) and outputs an image after placing nodules at the locations given by *nodules.json*.
+The algorithm reads the inputs (a medical image and *nodules.json*) and produces an image with a generated nodule at the requested location (provided with nodules.json). The resulting image is written to /output/.
+
+📌 NOTE: In order to run this codebase, nodule_patches folder should contain all the ct nodule patches and corresponding segmentation maps, which are provided in zenodo release of NODE21. If you would like to run this algorithm, please copy all the provided ct nodule patches and segmentations inside nodule_patches folder. 
+
+💡 To test this container locally without a docker container, you should the execute_in_docker flag to False - this sets all paths to relative paths. You should set it back to True when you want to switch back to the docker container setting.
 
 ### Operating on a 3D image
-
 For the sake of time effeciency in the evaluation process of [NODE21](https://node21.grand-challenge.org/), the submitted algorithms to [NODE21](https://node21.grand-challenge.org/) are expected to operate on a 3D image where multiple CXR images are stacked together. This means that, the algorithms should handle 3D image, by reading a CXR slice by slice. The third coordinate of the bounding box in nodules.json file are used as an identifier of the CXR. If the algorithm processes the first CXR image in 3D volume, the z coordinate would be 0, if it processes the third CXR image, it would be 2.
 
 
-### Building and testing the docker
+### Build, test and export your container
+1. To test if all dependencies are met, you could run the file build.bat (Windows) / build.sh (Linux) to build the docker container. Please note that the next step (testing the container) also runs a build, so this step is not necessary if you are certain that everything is set up correctly.
+    
+    *build.sh*/*build.bat* files will run the following command to build the docker for you:
+    ```python 
+    docker build -t nodulegenerator .
+    ```
 
-Run the following command to build the docker:
- ```python
-docker build -t nodulegenerator .
- ```
-
-To test the docker container, run the following command (map /input to your own test directory):
- ```python
- docker run --rm --memory=11g -v small_test/:/input/ -v nodulegeneration-output:/output/ nodulegenerator
- ```
-
-To save the container, run the following command:
- ```python
-  docker save nodulegenerator | gzip -c > nodulegenerator.tar.gz
- ```
+2. To test the docker container to see if it works as expected, *test.sh*/*test.bat* will run the container on images provided in  ```test/``` folder, and it will check the results (*results.json* produced by your algorithm) against ```test/expected_output.json```. 
+    
+    Once you validated that the algorithm works as expected, you might want to simply run the algorithm on the test folder and check nodules.json file (see $SCRIPTPATH/results/), you could use the following command for this: 
+   ```python
+   docker run --rm --memory=11g -v path_to_your_test_folder/:/input/ -v path_to_your_output_folder/:/output/ nodulegenerator
+   ```
+   
+  
+3. Run *export.sh*/*export.bat* to save the container which run the following command:
+   ```python
+    docker save nodulegenerator | gzip -c > nodulegenerator.tar.gz
+   ```
     
     
  ### Submit your algorithm
