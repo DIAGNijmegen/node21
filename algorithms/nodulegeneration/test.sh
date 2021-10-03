@@ -6,13 +6,11 @@ SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 
 docker volume create nodulegeneration-output
 
-# docker run --rm \
-#         --memory=8g \
-#         -v $SCRIPTPATH/test/:/input/ \
-#         -v nodulegeneration-output:/output/ \
-#         nodulegeneration
-
-docker run --rm --memory=11g -v /mnt/synology/cxr/projects/node21/nodulegeneration/test/:/input/ -v nodulegeneration-output:/output/ nodulegenerator
+docker run --rm \
+        --memory=8g \
+        -v $SCRIPTPATH/test/:/input/ \
+        -v nodulegeneration-output:/output/ \
+        nodulegeneration
 
 docker run --rm \
         -v nodulegeneration-output:/output/ \

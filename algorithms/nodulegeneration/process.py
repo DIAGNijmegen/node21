@@ -11,7 +11,16 @@ from typing import Dict
 import json
 from skimage.measure import regionprops
 import imageio
+from pathlib import Path
+import time
+import pandas as pd
+import random
+from random import randrange
+import os
 
+# This parameter adapts the paths between local execution and execution in docker. You can use this flag to switch between these two modes.
+# For building your docker, set this parameter to True. If False, it will run process.py locally for test purposes.
+execute_in_docker = True
 class Nodulegeneration(SegmentationAlgorithm):
     def __init__(self):
         super().__init__(
@@ -21,46 +30,16 @@ class Nodulegeneration(SegmentationAlgorithm):
                     UniquePathIndicesValidator(),
                 )
             ),
+            input_path = Path("/input/") if execute_in_docker else Path("./test/"),
+            output_path = Path("/output/") if execute_in_docker else Path("./output/"),
+            output_file = Path("/output/results.json") if execute_in_docker else Path("./output/results.json")
+
         )
-        
+
         # load nodules.json for location
-        with open("/input/nodules.json") as f:
+        with open("/input/nodules.json" if execute_in_docker else "test/nodules.json") as f:
             self.data = json.load(f)
     
-
-    def get_nodule_diameter(self, seg_image):
-        
-        seg_image = np.mean(seg_image, axis=1)
-        seg_image[seg_image!=0] = 255
-        seg_image = seg_image.astype(int)
-        properties = regionprops(seg_image)
-
-        for p in properties:
-            min_row, min_col, max_row, max_col = p.bbox
-            diameter = max(max_row - min_row, max_col - min_col)
-            print(diameter)
-
-        return diameter
-    
-
-    def process_CT_patches(self, ct_path, seg_path, required_diameter):
-        '''
-        Resample ct nodule patches and generates fake CXR nodule patches.
-        '''
-        ct_image = SimpleITK.GetArrayFromImage(SimpleITK.ReadImage(ct_path))
-        seg_img = SimpleITK.GetArrayFromImage(SimpleITK.ReadImage(seg_path))
-        diameter = self.get_nodule_diameter(seg_img)
-        scaling_factor = diameter/required_diameter
-
-        image_resampled, new_spacing = resample(ct_image, voxel_spacing = [1,1,1], new_spacing=[scaling_factor,scaling_factor,scaling_factor])
-        seg_image_resampled, new_spacing = resample(seg_img, voxel_spacing = [1,1,1], new_spacing=[scaling_factor,scaling_factor,scaling_factor])
-        # put black values to the ct patch outside nodules.
-        image_resampled[seg_image_resampled<=np.min(seg_image_resampled)]=np.min(image_resampled)
-        # generate 2D digitially reconstructed CXR.
-        X_ct_2d_resampled = generate_2d(image_resampled)
-        
-        return X_ct_2d_resampled
-
 
     def predict(self, *, input_image: SimpleITK.Image) -> SimpleITK.Image:
         # TODO
@@ -72,21 +51,26 @@ class Nodulegeneration(SegmentationAlgorithm):
         '''
         # for memory issues
         input_image = SimpleITK.GetArrayFromImage(input_image)
-
+        total_time = time.time()
         if len(input_image.shape)==2:
             input_image = np.expand_dims(input_image, 0)
-
+        
+        pd_data = pd.read_csv('/opt/algorithm/ct_nodules.csv' if execute_in_docker else "ct_nodules.csv")
+        
         nodule_images = np.zeros(input_image.shape)
         print(len(nodule_images), input_image.shape)
         for j in range(len(input_image)):
-            cxr_img = input_image[j,:,:]
+            t = time.time()
+            print('reading image ', j)
+            cxr_img_scaled = input_image[j,:,:]
             # scale between 0 to 255.
-            cxr_img_scaled = ((cxr_img - cxr_img.min()) * (1/(cxr_img.max() - cxr_img.min()) * 255)).astype('uint8')
+            #cxr_img_scaled = ((cxr_img - cxr_img.min()) * (1/(cxr_img.max() - cxr_img.min()) * 255)).astype('uint8')
             # this is not always a good strategy! arbitrary location
 
             nodule_data = [i for i in self.data['boxes'] if i['corners'][0][2]==j]
-    
+
             for nodule in nodule_data:
+                cxr_img_scaled = convert_to_range_0_1(cxr_img_scaled)
                 boxes = nodule['corners']
                 # no spacing info in GC with 3D version
                 #x_min, y_min, x_max, y_max = boxes[2][0]/spacing_x, boxes[2][1]/spacing_y, boxes[0][0]/spacing_x, boxes[0][1]/spacing_y
@@ -95,32 +79,33 @@ class Nodulegeneration(SegmentationAlgorithm):
                 x_min, y_min, x_max, y_max = int(x_min), int(y_min), int(x_max), int(y_max)
 
                 #------------------------------ Randomly choose ct patch and scale it according to bounding box size.
-                ct_path = '1.3.6.1.4.1.14519.5.2.1.6279.6001.100621383016233746780170740405_dcm_1.mha'
-                seg_path = '1.3.6.1.4.1.14519.5.2.1.6279.6001.100621383016233746780170740405_seg_1.mha'
-                nodule_patch = self.process_CT_patches(ct_path, seg_path, (max(x_max-x_min, y_max-y_min)))
+                required_diameter = max(x_max-x_min, y_max-y_min)
+                ct_names = pd_data[pd_data['diameter']>int((required_diameter/5))]['img_name'].values
+                if len(ct_names)<1:
+                    pd_data[pd_data['diameter']>int((required_diameter/10))]['img_name'].values
+                    
+                index_ct = random.randint(0, len(ct_names)-1)
+                path_nodule = '/opt/algorithm/nodule_patch/' if execute_in_docker else 'nodule_patch/'
+                X_ct_2d_resampled, diameter = process_CT_patches(os.path.join(path_nodule,ct_names[index_ct]), os.path.join(path_nodule, ct_names[index_ct].replace('dcm','seg')), required_diameter)
+                
+                crop = cxr_img_scaled[x_min:x_max, y_min:y_max].copy()
+                new_arr = convert_to_range_0_1(X_ct_2d_resampled)
 
+                # contrast matching:
+                c = contrast_matching(new_arr, cxr_img_scaled[x_min:x_max, y_min:y_max])
+                nodule_contrasted = new_arr * c
 
-                # this is not always a good strategy! arbitrary location
-                max_value, min_value = np.max(cxr_img_scaled[730:750, 620:640]), np.min(cxr_img_scaled[730:750, 620:640])
+                indexes = nodule_contrasted!=np.min(nodule_contrasted)
+                result = poisson_blend(nodule_contrasted, cxr_img_scaled, y_min, y_max, x_min, x_max)
+                result[x_min:x_max, y_min:y_max] = np.mean(np.array([crop*255, result[x_min:x_max, y_min:y_max]]), axis=0)
 
-                nodule_patch_scaled = ((nodule_patch - nodule_patch.min()) * (1/(nodule_patch.max() - nodule_patch.min()) * (max_value-min_value))+min_value).astype('uint8')
-
-                bb_x_size, bb_y_size = (x_max-x_min), (y_max-y_min)
-                extra_area = int((nodule_patch_scaled.shape[1]-bb_x_size)/2)
-                extra_area_y = int((nodule_patch_scaled.shape[0]-bb_y_size)/2)
-
-                crop = cxr_img_scaled[y_min-extra_area_y:y_min-extra_area_y+nodule_patch_scaled.shape[1], x_min-extra_area:x_min-extra_area+nodule_patch_scaled.shape[0]]
-                # indexes where 2d fake nodule image (CT-generated) is not black
-                indexes = nodule_patch_scaled!=np.min(nodule_patch_scaled)
-                # if not black, average it with background.
-                nodule_patch_scaled[indexes] = np.mean(np.array([crop[indexes], nodule_patch_scaled[indexes]]), axis=0) 
-                # otherwise use the pixel values from the original image.
-                nodule_patch_scaled[~indexes]=crop[~indexes]
-                # blend the nodule data to CXR image
-                cxr_img_scaled[y_min-extra_area_y:y_min-extra_area_y+nodule_patch_scaled.shape[1], x_min-extra_area:x_min-extra_area+nodule_patch_scaled.shape[0]] = nodule_patch_scaled
-            nodule_images[j,:,:] = cxr_img_scaled 
-
+            nodule_images[j,:,:] = result 
+            print('time for image ', j, time.time()-t)
+        print('total time ', time.time()-total_time)
         return SimpleITK.GetImageFromArray(nodule_images)
 
 if __name__ == "__main__":
     Nodulegeneration().process()
+
+                                                                 
+                                                                 

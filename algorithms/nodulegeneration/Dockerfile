@@ -5,6 +5,9 @@ RUN groupadd -r algorithm && useradd -m --no-log-init -r -g algorithm algorithm
 RUN mkdir -p /opt/algorithm /input /output \
     && chown algorithm:algorithm /opt/algorithm /input /output
 
+RUN apt-get update 
+RUN apt-get install ffmpeg libsm6 libxext6  -y
+
 USER algorithm
 
 WORKDIR /opt/algorithm
@@ -13,12 +16,11 @@ ENV PATH="/home/algorithm/.local/bin:${PATH}"
 
 RUN python -m pip install --user -U pip
 
-COPY --chown=algorithm:algorithm nodule_patch/1.3.6.1.4.1.14519.5.2.1.6279.6001.100621383016233746780170740405_dcm_1.mha /opt/algorithm/1.3.6.1.4.1.14519.5.2.1.6279.6001.100621383016233746780170740405_dcm_1.mha
-
-COPY --chown=algorithm:algorithm nodule_patch/1.3.6.1.4.1.14519.5.2.1.6279.6001.100621383016233746780170740405_seg_1.mha /opt/algorithm/1.3.6.1.4.1.14519.5.2.1.6279.6001.100621383016233746780170740405_seg_1.mha
+COPY --chown=algorithm:algorithm nodule_patch /opt/algorithm/nodule_patch
 
 COPY --chown=algorithm:algorithm requirements.txt /opt/algorithm/
 COPY --chown=algorithm:algorithm utils.py /opt/algorithm/
+COPY --chown=algorithm:algorithm ct_nodules.csv /opt/algorithm/
 
 RUN python -m pip install --user -rrequirements.txt
 
