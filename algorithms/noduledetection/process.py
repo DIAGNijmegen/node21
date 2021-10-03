@@ -51,7 +51,7 @@ class Noduledetection(DetectionAlgorithm):
             print('loading the model from container with model file:')
             self.model.load_state_dict(
             torch.load(
-                "model",
+                "model.pth",
                 map_location=self.device,
                 )
             ) 
@@ -60,7 +60,7 @@ class Noduledetection(DetectionAlgorithm):
             print('loading the retrained model for retest phase')
             self.model.load_state_dict(
             torch.load(
-                Path("/input/model_retrained") if execute_in_docker else Path("./output/model_retrained"),
+                Path("/input/model_retrained.pth") if execute_in_docker else Path("./output/model_retrained.pth"),
                 map_location=self.device,
                 )
             ) 
@@ -125,7 +125,7 @@ class Noduledetection(DetectionAlgorithm):
             
             # save retrained version frequently.
             print('saving the model')
-            torch.save(self.model.state_dict(), Path("/output/model_retrained") if execute_in_docker else Path("./output/model_retrained"))
+            torch.save(self.model.state_dict(), Path("/output/model_retrained.pth") if execute_in_docker else Path("./output/model_retrained.pth"))
       
 
     def format_to_GC(self, np_prediction, spacing) -> Dict:
@@ -151,12 +151,13 @@ class Noduledetection(DetectionAlgorithm):
             box = {}   
             box['corners']=[]
             x_min, y_min, x_max, y_max = bb*x_y_spacing
+            x_min, y_min, x_max, y_max  = round(x_min, 2), round(y_min, 2), round(x_max, 2), round(y_max, 2)
             bottom_left = [x_min, y_min,  np_prediction['slice'][i]] 
             bottom_right = [x_max, y_min,  np_prediction['slice'][i]]
             top_left = [x_min, y_max,  np_prediction['slice'][i]]
             top_right = [x_max, y_max,  np_prediction['slice'][i]]
             box['corners'].extend([top_right, top_left, bottom_left, bottom_right])
-            box['probability'] = float(np_prediction['scores'][i])
+            box['probability'] = round(float(np_prediction['scores'][i]), 2)
             boxes.append(box)
         
         return dict(type="Multiple 2D bounding boxes", boxes=boxes, version={ "major": 1, "minor": 0 })
