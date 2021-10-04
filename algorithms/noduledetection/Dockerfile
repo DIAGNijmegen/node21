@@ -6,8 +6,8 @@ FROM pytorch/pytorch:1.9.0-cuda11.1-cudnn8-runtime
 
 RUN groupadd -r algorithm && useradd -m --no-log-init -r -g algorithm algorithm
 
-RUN mkdir -p /opt/algorithm /input /output \
-    && chown algorithm:algorithm /opt/algorithm /input /output
+RUN mkdir -p /opt/algorithm /input /output 
+
 
 USER algorithm
 

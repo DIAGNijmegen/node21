@@ -169,26 +169,43 @@ scikit-image==0.17.2
 <a name="export"/>
 
 ### Build, test and export your container
-1. To test if all dependencies are met, you could run the file build.bat (Windows) / build.sh (Linux) to build the docker container. Please note that the next step (testing the container) also runs a build, so this step is not necessary if you are certain that everything is set up correctly.
-    
+1. To test if all dependencies are met, you can run the file build.bat (Windows) / build.sh (Linux) to build the docker container. 
+Please note that the next step (testing the container) also runs a build, so this step is not necessary if you are certain that everything is set up correctly.
+
     *build.sh*/*build.bat* files will run the following command to build the docker for you:
     ```python 
+   cd algorithms/noduledetection
     docker build -t noduledetector .
     ```
 
-2. To test the docker container to see if it works as expected, *test.sh*/*test.bat* will run the container on images provided in  ```test/``` folder, and it will check the results (*nodules.json* produced by your algorithm) against ```test/expected_output.json```. Please update your ```test/expected_output.json``` according to your algorithm result when it is run on the test data. 
-    
-    Once you validated that the algorithm works as expected, you might want to simply run the algorithm on the test folder and check nodules.json file (see $SCRIPTPATH/results/), you could use the following command for this: 
+2. To test the docker container to see if it works as expected, *test.sh*/*test.bat* will run the container on images provided in  ```test/``` folder, 
+and it will check the results (*nodules.json* produced by your algorithm) against ```test/expected_output.json```. 
+Please update your ```test/expected_output.json``` according to your algorithm result when it is run on the test data. 
    ```python
-   docker run --rm --memory=11g -v path_to_your_test_folder/:/input/ -v path_to_your_output_folder/:/output/ noduledetector
+   . ./test.sh
+   ```
+    If the test runs successfully you will see the message **Tests successfully passed...** at the end of the output.
+
+    Once you validated that the algorithm works as expected, you might want to simply run the algorithm on the test folder 
+    and check the nodules.json file for yourself.  If you are on a native Linux system you will need to create a results folder that the 
+    docker container can write to as follows (WSL users can skip this step)
+    ```python
+   mkdir $SCRIPTPATH/results
+   chmod 777 $SCRIPTPATH/results
+   ```
+   To write the output of the algorithm to the results folder use the following command: 
+   ```python
+   docker run --rm --memory=11g -v $SCRIPTPATH/test:/input/ -v $SCRIPTPATH/results:/output/ noduledetector
    ```
    
-   If you would like to run the algorithm on training mode (or any other modes), please make sure your training folder (which is mapped to /input) has *'metadata.csv'* and  ```images/``` folder as decsribed above. You could use the following command for this:
+3. If you would like to run the algorithm in training mode (or any other modes), please make sure your training folder (which is mapped to /input) 
+   has *'metadata.csv'* and  ```images/``` folder as described above.  If you are on a native Linux system make sure that
+   your output folder has 777 permissions as mentioned in the previous step.  You can use the following command to start training:
    ```python
    docker run --rm --memory=11g -v path_to_your_training_folder/:/input/ -v path_to_your_output_folder/:/output/ noduledetector --train
    ```
 
-3. Run *export.sh*/*export.bat* to save the container which run the following command:
+4. Run *export.sh*/*export.bat* to save the container which runs the following command:
    ```python
     docker save noduledetector | gzip -c > noduledetector.tar.gz
    ```
