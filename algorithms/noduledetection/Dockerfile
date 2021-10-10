@@ -3,7 +3,6 @@
 # or a different PYTORCH (https://hub.docker.com/r/pytorch/pytorch/) base image
 FROM pytorch/pytorch:1.9.0-cuda11.1-cudnn8-runtime
 
-
 RUN groupadd -r algorithm && useradd -m --no-log-init -r -g algorithm algorithm
 
 RUN mkdir -p /opt/algorithm /input /output \

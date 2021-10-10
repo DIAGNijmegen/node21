@@ -1,24 +1,44 @@
 # Nodule Generation Algorithm
 
-This codebase implements a simple baseline model for nodule generation track in [NODE21](https://node21.grand-challenge.org/). It contains all necessary files to build a docker image from in order to help the participants to create their own algorithm for submission to the generation track. 
+This codebase implements a simple baseline model, by following the main steps in the [paper](https://geertlitjens.nl/publication/litj-10-a/litj-10-a.pdf) published by Litjens et al. for nodule generation track in [NODE21](https://node21.grand-challenge.org/). It contains all necessary files to build a docker image which can be submitted as an algorithm on the [grand-challenge](https://www.grand-challenge.org) platform. Participants in the generation track can use this codebase as a template to understand how to create their own algorithm for submission.
 
-For serving this algorithm in a docker container compatible with the requirements of grand-challenge, we used [evalutils](https://github.com/comic/evalutils) which provides methods to wrap your algorithm in Docker containers. It automatically generates template scripts for your container files, and creates commands for building, testing, and exporting the algorithm container. We adapted this template code for our algorithm by following the [tutorial](https://grand-challenge.org/blogs/create-an-algorithm/). For learning how to use evalutils, and how to adapt it for your own algorithm, we refer you to the [tutorial](https://grand-challenge.org/blogs/create-an-algorithm/). The details regarding how NODE21 generation algorithm is expected to work is described below.
+To serve this algorithm in a docker container compatible with the requirements of grand-challenge, 
+we used [evalutils](https://github.com/comic/evalutils) which provides methods to wrap your algorithm in Docker containers. 
+It automatically generates template scripts for your container files, and creates commands for building, testing, and exporting the algorithm container.
+We adapted this template code for our algorithm by following the
+[general tutorial on how to create a grand-challenge algorithm](https://grand-challenge.org/blogs/create-an-algorithm/). 
+
+Before diving into the details of this template code we recommend readers have the pre-requisites installed and have cloned this repository as described on the 
+[main README page](https://github.com/DIAGNijmegen/node21), and that they have gone through 
+the [general tutorial on how to create a grand-challenge algorithm](https://grand-challenge.org/blogs/create-an-algorithm/). 
+
+The details of how to build and submit the baseline NODE21 nodule generation algorithm using our template code are described below.
 
 ##### Table of Contents  
-[An overview of the structure of this example](#algorithm)  
-[Interfaces](#interfaces)  
-[Building your container](#build)  
-[Testing your container](#test)  
-[Export your algorithm container](#export)
+[An overview of the baseline algorithm](#algorithm)  
+[Configuring the Docker File](#dockerfile)  
+[Export your algorithm container](#export)   
+[Submit your algorithm](#submit)  
 
-<a name="interfaces"/>
+<a name="algorithm"/>
+
+## An overview of the baseline algorithm
+The baseline nodule generation algorithm is based on the [paper](https://geertlitjens.nl/publication/litj-10-a/litj-10-a.pdf) published by Litjens et al.. The main file executed by the docker container is [*process.py*](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/nodulegeneration/process.py). 
+
 
 ## Input and output interfaces
-The nodule generation algorithm takes as input a chest X-ray (CXR) and a nodules.json file and produces a CXR after placing nodules at given locations. It reads the input :
+The algorithm needs to generate nodules on a given chest X-ray image (CXR) at requested locations and return a CXR after placing nodules. The nodule generation algorithm takes as input a chest X-ray (CXR) and a nodules.json file, which holds the coordinates location of where to generate the nodules. The algorithm reads the input :
 * CXR at ```"/input/<uuid>.mha"```
 * nodules.json file at ```"/input/nodules.json"```.
 
-*Nodules.json* file provides information of where nodules should be placed on a given CXR. This file contains multiple 2D bounding boxes coordinates in [CIRRUS](https://comic.github.io/grand-challenge.org/components.html#grandchallenge.components.models.InterfaceKind.interface_type_annotation) compatible format, an example json file is as follows:
+and writes the output to:
+```/output/<uuid>.mha```
+
+The nodules.json file contains the predicted bounding box locations and associated nodule likelihoods (probabilities). 
+This file is a dictionary and contains multiple 2D bounding boxes coordinates 
+in [CIRRUS](https://comic.github.io/grand-challenge.org/components.html#grandchallenge.components.models.InterfaceKind.interface_type_annotation) 
+compatible format. The coordinates are expected in milimiters when spacing information is available. 
+An example nodules.json file is as follows:
 
 ```python
 {
@@ -42,31 +62,71 @@ The nodule generation algorithm takes as input a chest X-ray (CXR) and a nodules
     "version": { "major": 1, "minor": 0 }
 }
 ```
+The implementation of the algorithm inference in process.py is straightforward (and highly recommended be followed by participants creating their own algorithm): 
+load the nodules.json file in the [*__init__*](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/nodulegeneration/process.py#L25) function of the class, 
+and implement a function called [*predict*](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/nodulegeneration/process.py#L44) 
+to generetae nodules on a given CXR image. 
 
-The algorithm reads the inputs (a medical image and *nodules.json*) and outputs an image after placing nodules at the locations given by *nodules.json*.
+The function [*predict*](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/nodulegeneration/process.py#L44) is run by 
+evalutils when the [process](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/nodulegeneration/process.py#L108) function is called. 
+
+📌 NOTE: In order to run this codebase, nodule_patches folder should contain all the ct nodule patches and corresponding segmentation maps, which are provided in zenodo release of NODE21. If you would like to run this algorithm, please copy all the provided ct nodule patches and segmentations together inside nodule_patches folder. 
+
+💡 To test this container locally without a docker container, you should the **execute_in_docker** flag to 
+False - this sets all paths to relative paths. You should set it back to **True** when you want to switch back to the docker container setting.
 
 ### Operating on a 3D image
+For the sake of time efficiency in the evaluation process of [NODE21](https://node21.grand-challenge.org/), 
+the submitted algorithms to [NODE21](https://node21.grand-challenge.org/) are expected to operate on a 3D image which consists of multiple CXR images 
+stacked together. The algorithm should go through the slices (CXR images) one by one and process them individually, 
+as shown in [*predict*](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/nodulegeneration/process.py#L62). 
+When outputting results, the third coordinate of the bounding box in nodules.json file is used to identify the CXR from the stack. 
+If the algorithm processes the first CXR image in 3D volume, the z coordinate output should be 0, if it processes the third CXR image, it should be 2, etc. 
 
-For the sake of time effeciency in the evaluation process of [NODE21](https://node21.grand-challenge.org/), the submitted algorithms to [NODE21](https://node21.grand-challenge.org/) are expected to operate on a 3D image where multiple CXR images are stacked together. This means that, the algorithms should handle 3D image, by reading a CXR slice by slice. The third coordinate of the bounding box in nodules.json file are used as an identifier of the CXR. If the algorithm processes the first CXR image in 3D volume, the z coordinate would be 0, if it processes the third CXR image, it would be 2.
+<a name="dockerfile"/>
 
+### Configure the Docker file
 
-### Building and testing the docker
+<a name="export"/>
 
-Run the following command to build the docker:
- ```python
-docker build -t nodulegenerator .
- ```
+### Build, test and export your container
+1. To test if all dependencies are met, you can run the file build.bat (Windows) / build.sh (Linux) to build the docker container. 
+Please note that the next step (testing the container) also runs a build, so this step is not necessary if you are certain that everything is set up correctly.
 
-To test the docker container, run the following command (map /input to your own test directory):
- ```python
- docker run --rm --memory=11g -v small_test/:/input/ -v nodulegeneration-output:/output/ nodulegenerator
- ```
+    *build.sh*/*build.bat* files will run the following command to build the docker for you:
+    ```python 
+   cd algorithms/nodulegeneration
+    docker build -t nodulegenerator .
+    ```
 
-To save the container, run the following command:
- ```python
-  docker save nodulegenerator | gzip -c > nodulegenerator.tar.gz
- ```
-    
+2. To test the docker container to see if it works as expected, *test.sh*/*test.bat* will run the container on images provided in  ```test/``` folder, 
+and it will check the results (*results.json* produced by your algorithm) against ```test/expected_output.json```. 
+Please update your ```test/expected_output.json``` according to your algorithm result when it is run on the test data. 
+   ```python
+   . ./test.sh
+   ```
+    If the test runs successfully you will see the message **Tests successfully passed...** at the end of the output.
+
+    Once you validated that the algorithm works as expected, you might want to simply run the algorithm on the test folder 
+    and check the output images for yourself.  If you are on a native Linux system you will need to create a results folder that the 
+    docker container can write to as follows.
+    ```python
+   mkdir $SCRIPTPATH/results
+   chmod 777 $SCRIPTPATH/results
+   ```
+   To write the output of the algorithm to the results folder use the following command (note that $SCRIPTPATH was created in the previous test script): 
+   ```python
+   docker run --rm --memory=11g -v $SCRIPTPATH/test:/input/ -v $SCRIPTPATH/results:/output/ nodulegenerator
+   ```
+   
+
+4. Run *export.sh*/*export.bat* to save the docker image which runs the following command:
+   ```python
+    docker save nodulegenerator | gzip -c > nodulegenerator.tar.gz
+   ```
+     
+ <a name="submit"/>
+
     
  ### Submit your algorithm
  Once you have your docker image ready (.tar.gz file), you are ready to submit! Let us walk you through the steps you need to follow to upload and submit your algorithm to [NODE21](https://node21.grand-challenge.org/) generation track:
@@ -86,7 +146,7 @@ To save the container, run the following command:
 4. OPTIONAL: You could look at the results of your algorithm: click on the *Results*, and *Open Result in Viewer* to visualize the results. You would be directed to CIRRUS viewer, and the results will be visualized with the predicted bounding boxes on chest x-ray images as below. You could move to the next and previous slice (slice is a chest x-ray in this case) by clicking on the up and down arrow in the keyboard.
     ![alt text](https://github.com/DIAGNijmegen/node21/blob/main/images/gen_algorithm_results.PNG)
 
-5. Go to the [NODE21](https://node21.grand-challenge.org/evaluation/challenge/submissions/create/) submission page, and submit your solution to the detection track by choosing your algorithm.
+5. Go to the [NODE21](https://node21.grand-challenge.org/evaluation/challenge/submissions/create/) submission page, and submit your solution to the generation track by choosing your algorithm.
    ![alt text](https://github.com/DIAGNijmegen/node21/blob/main/images/node21_submission.PNG)
     
 

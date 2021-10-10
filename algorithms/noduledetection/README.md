@@ -140,7 +140,7 @@ wrap your algorithm in a docker container:
 ```python
 FROM pytorch/pytorch:1.9.0-cuda11.1-cudnn8-runtime
 ```
-📌 NOTE: The docker images will be run on A100 GPU in the training phase. For pytorch installations, you will need to install CUDA 11.0 instead of 10.2 and reinstall PyTorch for this CUDA version.
+📌 NOTE: You should use a base image that is compatible with CUDA 11.x since that is what will be used on the grand-challenge system.
 
 2. Copy all the files you need to run your model : model weights, *requirements.txt*, all the python files you need etc.
 ```python
@@ -169,26 +169,44 @@ scikit-image==0.17.2
 <a name="export"/>
 
 ### Build, test and export your container
-1. To test if all dependencies are met, you could run the file build.bat (Windows) / build.sh (Linux) to build the docker container. Please note that the next step (testing the container) also runs a build, so this step is not necessary if you are certain that everything is set up correctly.
-    
+1. To test if all dependencies are met, you can run the file build.bat (Windows) / build.sh (Linux) to build the docker container. 
+Please note that the next step (testing the container) also runs a build, so this step is not necessary if you are certain that everything is set up correctly.
+
     *build.sh*/*build.bat* files will run the following command to build the docker for you:
     ```python 
+   cd algorithms/noduledetection
     docker build -t noduledetector .
     ```
 
-2. To test the docker container to see if it works as expected, *test.sh*/*test.bat* will run the container on images provided in  ```test/``` folder, and it will check the results (*nodules.json* produced by your algorithm) against ```test/expected_output.json```. Please update your ```test/expected_output.json``` according to your algorithm result when it is run on the test data. 
-    
-    Once you validated that the algorithm works as expected, you might want to simply run the algorithm on the test folder and check nodules.json file (see $SCRIPTPATH/results/), you could use the following command for this: 
+2. To test the docker container to see if it works as expected, *test.sh*/*test.bat* will run the container on images provided in  ```test/``` folder, 
+and it will check the results (*nodules.json* produced by your algorithm) against ```test/expected_output.json```. 
+Please update your ```test/expected_output.json``` according to your algorithm result when it is run on the test data. 
    ```python
-   docker run --rm --memory=11g -v path_to_your_test_folder/:/input/ -v path_to_your_output_folder/:/output/ noduledetector
+   . ./test.sh
+   ```
+    If the test runs successfully you will see the message **Tests successfully passed...** at the end of the output.
+
+    Once you validated that the algorithm works as expected, you might want to simply run the algorithm on the test folder 
+    and check the nodules.json file for yourself.  If you are on a native Linux system you will need to create a results folder that the 
+    docker container can write to as follows (WSL users can skip this step)
+    ```python
+   mkdir $SCRIPTPATH/results
+   chmod 777 $SCRIPTPATH/results
+   ```
+   To write the output of the algorithm to the results folder use the following command (note that $SCRIPTPATH was created in the previous test script): 
+   ```python
+   docker run --rm --memory=11g -v $SCRIPTPATH/test:/input/ -v $SCRIPTPATH/results:/output/ noduledetector
    ```
    
-   If you would like to run the algorithm on training mode (or any other modes), please make sure your training folder (which is mapped to /input) has *'metadata.csv'* and  ```images/``` folder as decsribed above. You could use the following command for this:
+3. If you would like to run the algorithm in training mode (or any other modes), please make sure your training folder (which is mapped to /input) 
+   has *'metadata.csv'* and  ```images/``` folder as described above.  If you are on a native Linux system make sure that
+   your output folder has 777 permissions as mentioned in the previous step.  You can use the following command to start training -(you may also need to add
+   the flag *--shm-size 8G* (for example) to specify shared memory that the container can use:
    ```python
-   docker run --rm --memory=11g -v path_to_your_training_folder/:/input/ -v path_to_your_output_folder/:/output/ noduledetector --train
+   docker run --rm --gpus all --memory=11g -v path_to_your_training_folder/:/input/ -v path_to_your_output_folder/:/output/ noduledetector --train
    ```
 
-3. Run *export.sh*/*export.bat* to save the container which run the following command:
+4. Run *export.sh*/*export.bat* to save the docker image which runs the following command:
    ```python
     docker save noduledetector | gzip -c > noduledetector.tar.gz
    ```
@@ -196,7 +214,7 @@ scikit-image==0.17.2
  <a name="submit"/>
  
  ### Submit your algorithm
- Once you have your docker image ready (.tar.gz file), you are ready to submit! Let us walk you through the steps you need to follow to upload and submit your algorithm to [NODE21](https://node21.grand-challenge.org/) detection track:
+ Once you have your docker image saved (.tar.gz file), you are ready to submit! Let us walk you through the steps you need to follow to upload and submit your algorithm to [NODE21](https://node21.grand-challenge.org/) detection track:
 
 1. In order to submit your docker container, you first have to create an algorithm entry for your docker container [here](https://grand-challenge.org/algorithms/create/).
    * Please choose a title for your algorithm and add a (squared image) logo. Enter the modalities and structure information as in the example below.
@@ -212,10 +230,12 @@ scikit-image==0.17.2
    * At the bottom of the page, indicate that you would like your Docker image to use GPU and how much memory it needs
    ![alt text](https://github.com/DIAGNijmegen/node21/blob/main/images/container_img_config.PNG)
    
-2. After saving it, you are ready to upload your docker container. Choose the container tab, and upload your container. You can also overwrite your container by uploading a new one. That means that when you make changes to your algorithm, you could overwrite your container and submit the updated version of your algorithm to node21:
+2. After saving it, you are ready to upload your docker container. Choose the container tab, and upload your container. You can also later overwrite your container by uploading a new one. That means that when you make changes to your algorithm, you could overwrite your container and submit the updated version of your algorithm to node21:
     ![alt text](https://github.com/DIAGNijmegen/node21/blob/main/images/algorithm_uploadcontainer.PNG)
 
-3. OPTIONAL: Please note that it can take a while (several minutes) until the container becomes active. Once it becomes active, we suggest that you try out the algorithm to verify everything works as expected. For this, please click on *Try-out Algorithm* tab, and upload a *Generic Medical Image*. You could upload the image in the test folder since it is a 3D image (CXRs are stacked together), and test data would be in the same format.
+3. OPTIONAL: Please note that it can take a while (several minutes) until the container becomes active. After it uploads successfully you will see the details of the Algorithm with "Ready: False"
+   You can check back at any time on the "Containers" page and see if the status has changed to "Active".
+  Once it becomes active, we suggest that you try out the algorithm to verify everything works as expected. For this, please click on *Try-out Algorithm* tab, and upload a *Generic Medical Image*. You could upload the image provided here in the test folder since it is a 3D image (CXRs are stacked together) which is the expected format.
   ![alt text](https://github.com/DIAGNijmegen/node21/blob/main/images/algorithm_tryout.PNG)
 4. OPTIONAL: You could look at the results of your algorithm: click on the *Results*, and *Open Result in Viewer* to visualize the results. You would be directed to CIRRUS viewer, and the results will be visualized with the predicted bounding boxes on chest x-ray images as below. You could move to the next and previous slice (slice is a chest x-ray in this case) by clicking on the up and down arrow in the keyboard.
     ![alt text](https://github.com/DIAGNijmegen/node21/blob/main/images/algorithm_results.PNG)
