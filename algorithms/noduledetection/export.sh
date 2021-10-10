@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 
-./build.sh
+. ./build.sh
 
-docker save detector | gzip -c > noduledetection.tar.gz
+docker save noduledetector | gzip -c > noduledetection.tar.gz
