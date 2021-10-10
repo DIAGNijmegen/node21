@@ -42,14 +42,6 @@ class Nodulegeneration(SegmentationAlgorithm):
     
 
     def predict(self, *, input_image: SimpleITK.Image) -> SimpleITK.Image:
-        # TODO
-        '''
-        1. Concat images as 3d by keeping the spacing info
-        2. Handle when ct patch size is different than bb.
-        3. Get good coordinates by looking at the lung segmentations for each image.
-        4. Handle multiple nodules per slice
-        '''
-        # for memory issues
         input_image = SimpleITK.GetArrayFromImage(input_image)
         total_time = time.time()
         if len(input_image.shape)==2:
@@ -58,15 +50,10 @@ class Nodulegeneration(SegmentationAlgorithm):
         pd_data = pd.read_csv('/opt/algorithm/ct_nodules.csv' if execute_in_docker else "ct_nodules.csv")
         
         nodule_images = np.zeros(input_image.shape)
-        print(len(nodule_images), input_image.shape)
+        
         for j in range(len(input_image)):
             t = time.time()
-            print('reading image ', j)
             cxr_img_scaled = input_image[j,:,:]
-            # scale between 0 to 255.
-            #cxr_img_scaled = ((cxr_img - cxr_img.min()) * (1/(cxr_img.max() - cxr_img.min()) * 255)).astype('uint8')
-            # this is not always a good strategy! arbitrary location
-
             nodule_data = [i for i in self.data['boxes'] if i['corners'][0][2]==j]
 
             for nodule in nodule_data:
@@ -98,10 +85,10 @@ class Nodulegeneration(SegmentationAlgorithm):
                 indexes = nodule_contrasted!=np.min(nodule_contrasted)
                 result = poisson_blend(nodule_contrasted, cxr_img_scaled, y_min, y_max, x_min, x_max)
                 result[x_min:x_max, y_min:y_max] = np.mean(np.array([crop*255, result[x_min:x_max, y_min:y_max]]), axis=0)
+                cxr_img_scaled = result.copy()
 
             nodule_images[j,:,:] = result 
-            print('time for image ', j, time.time()-t)
-        print('total time ', time.time()-total_time)
+        print('total time took ', time.time()-total_time)
         return SimpleITK.GetImageFromArray(nodule_images)
 
 if __name__ == "__main__":

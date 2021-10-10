@@ -100,8 +100,9 @@ ENV/
 
 # mypy
 .mypy_cache/
-
+nodule_patch/
 # Pycharm
 .idea/
 test/
 small_test/
+non-necessary/
