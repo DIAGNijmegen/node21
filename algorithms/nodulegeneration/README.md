@@ -148,8 +148,8 @@ Please update your ```test/expected_output.json``` according to your algorithm r
 4. OPTIONAL: You could look at the results of your algorithm: click on the *Results*, and *Open Result in Viewer* to visualize the results. You would be directed to CIRRUS viewer, and the results will be visualized with the predicted bounding boxes on chest x-ray images as below. You could move to the next and previous slice (slice is a chest x-ray in this case) by clicking on the up and down arrow in the keyboard.
     ![alt text](https://github.com/DIAGNijmegen/node21/blob/main/images/gen_algorithm_results.PNG)
 
-5. Go to the [NODE21](https://node21.grand-challenge.org/evaluation/challenge/submissions/create/) submission page, and submit your solution to the generation track by choosing your algorithm.
-   ![alt text](https://github.com/DIAGNijmegen/node21/blob/main/images/node21_submission.PNG)
+5. Go to the [NODE21](https://node21.grand-challenge.org/evaluation/generation/submissions/create/) submission page, and submit your solution to the generation track by choosing your algorithm.
+   ![alt text](https://github.com/DIAGNijmegen/node21/blob/main/images/gen_alg_submission.PNG)
     
 
 
