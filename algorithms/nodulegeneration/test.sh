@@ -2,7 +2,7 @@
 
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 
-./build.sh
+. ./build.sh
 
 docker volume create nodulegeneration-output
 
@@ -10,7 +10,7 @@ docker run --rm \
         --memory=8g \
         -v $SCRIPTPATH/test/:/input/ \
         -v nodulegeneration-output:/output/ \
-        nodulegeneration
+        nodulegenerator
 
 docker run --rm \
         -v nodulegeneration-output:/output/ \

@@ -16,7 +16,7 @@ ENV PATH="/home/algorithm/.local/bin:${PATH}"
 
 RUN python -m pip install --user -U pip
 
-COPY --chown=algorithm:algorithm nodule_patch /opt/algorithm/nodule_patch
+COPY --chown=algorithm:algorithm nodule_patches /opt/algorithm/nodule_patches
 
 COPY --chown=algorithm:algorithm requirements.txt /opt/algorithm/
 COPY --chown=algorithm:algorithm utils.py /opt/algorithm/

@@ -169,12 +169,11 @@ scikit-image==0.17.2
 <a name="export"/>
 
 ### Build, test and export your container
-1. To test if all dependencies are met, you can run the file build.bat (Windows) / build.sh (Linux) to build the docker container. 
+1. Switch to the correct algorithm folder at algorithms/noduledetection. To test if all dependencies are met, you can run the file build.bat (Windows) / build.sh (Linux) to build the docker container. 
 Please note that the next step (testing the container) also runs a build, so this step is not necessary if you are certain that everything is set up correctly.
 
     *build.sh*/*build.bat* files will run the following command to build the docker for you:
     ```python 
-   cd algorithms/noduledetection
     docker build -t noduledetector .
     ```
 
@@ -188,7 +187,7 @@ Please update your ```test/expected_output.json``` according to your algorithm r
 
     Once you validated that the algorithm works as expected, you might want to simply run the algorithm on the test folder 
     and check the nodules.json file for yourself.  If you are on a native Linux system you will need to create a results folder that the 
-    docker container can write to as follows (WSL users can skip this step)
+    docker container can write to as follows (WSL users can skip this step).  (Note that $SCRIPTPATH was created in the previous test script)
     ```python
    mkdir $SCRIPTPATH/results
    chmod 777 $SCRIPTPATH/results

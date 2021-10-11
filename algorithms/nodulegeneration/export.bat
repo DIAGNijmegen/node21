@@ -1,3 +1,4 @@
 call .\build.bat
 
-docker save nodulegeneration > nodulegeneration.tar
+docker save nodulegenerator > nodulegenerator.tar
+

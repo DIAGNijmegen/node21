@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
-./build.sh
+. ./build.sh
 
-docker save nodulegeneration | gzip -c > nodulegeneration.tar.gz
+docker save nodulegenerator | gzip -c > nodulegenerator.tar.gz
+
