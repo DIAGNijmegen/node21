@@ -27,7 +27,7 @@ The baseline nodule generation algorithm is based on the [paper](https://geertli
 
 
 ## Input and output interfaces
-The algorithm needs to generate nodules on a given chest X-ray image (CXR) at requested locations and return a CXR after placing nodules. The nodule generation algorithm takes as input a chest X-ray (CXR) and a nodules.json file, which holds the coordinates location of where to generate the nodules. The algorithm reads the input :
+The algorithm needs to generate nodules on a given chest X-ray image (CXR) at requested locations (given in a .json file) and return a CXR after placing nodules. The nodule generation algorithm takes as input a chest X-ray (CXR) and a nodules.json file, which holds the coordinates location of where to generate the nodules. The algorithm reads the input :
 * CXR at ```"/input/<uuid>.mha"```
 * nodules.json file at ```"/input/nodules.json"```.
 
@@ -62,15 +62,17 @@ An example nodules.json file is as follows:
     "version": { "major": 1, "minor": 0 }
 }
 ```
-The implementation of the algorithm inference in process.py is straightforward (and highly recommended be followed by participants creating their own algorithm): 
+The implementation of the algorithm inference in process.py is straightforward (and must be followed by participants creating their own algorithm): 
 load the nodules.json file in the [*__init__*](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/nodulegeneration/process.py#L25) function of the class, 
 and implement a function called [*predict*](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/nodulegeneration/process.py#L44) 
-to generetae nodules on a given CXR image. 
+to generate nodules on a given CXR image. 
 
 The function [*predict*](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/nodulegeneration/process.py#L44) is run by 
 evalutils when the [process](https://github.com/DIAGNijmegen/node21/blob/main/algorithms/nodulegeneration/process.py#L108) function is called. 
 
-📌 NOTE: In order to run this codebase, nodule_patches folder should contain all the ct nodule patches and corresponding segmentation maps, which are provided in zenodo release of NODE21. If you would like to run this algorithm, please copy all the provided ct nodule patches and segmentations together inside nodule_patches folder. 
+📌 NOTE: In order to run this codebase, nodule_patches folder should contain all the ct nodule patches and corresponding segmentation maps, which are provided in the zenodo release of NODE21.
+     (Here we provide just one patch and its segmentation as an example.)
+     If you would like to run this algorithm, please copy all the provided ct nodule patches and segmentations together in to the nodule_patches folder. 
 
 💡 To test this container locally without a docker container, you should the **execute_in_docker** flag to 
 False - this sets all paths to relative paths. You should set it back to **True** when you want to switch back to the docker container setting.
