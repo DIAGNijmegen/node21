@@ -1,1 +1,2 @@
-docker build -t nodulegeneration .
+docker build -t nodulegenerator .
+

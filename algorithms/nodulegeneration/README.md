@@ -92,12 +92,12 @@ If the algorithm processes the first CXR image in 3D volume, the z coordinate ou
 <a name="export"/>
 
 ### Build, test and export your container
-1. To test if all dependencies are met, you can run the file build.bat (Windows) / build.sh (Linux) to build the docker container. 
+1. Switch to the correct algorithm folder at algorithms/nodulegeneration. To test if all dependencies are met, you can run the file build.bat (Windows) / build.sh (Linux) to build the docker container. 
 Please note that the next step (testing the container) also runs a build, so this step is not necessary if you are certain that everything is set up correctly.
 
     *build.sh*/*build.bat* files will run the following command to build the docker for you:
     ```python 
-   cd algorithms/nodulegeneration
+   
     docker build -t nodulegenerator .
     ```
 
@@ -111,7 +111,7 @@ Please update your ```test/expected_output.json``` according to your algorithm r
 
     Once you validated that the algorithm works as expected, you might want to simply run the algorithm on the test folder 
     and check the output images for yourself.  If you are on a native Linux system you will need to create a results folder that the 
-    docker container can write to as follows.
+    docker container can write to as follows (WSL users can skip this step) (Note that $SCRIPTPATH was created in the previous test script).
     ```python
    mkdir $SCRIPTPATH/results
    chmod 777 $SCRIPTPATH/results
@@ -143,7 +143,7 @@ Please update your ```test/expected_output.json``` according to your algorithm r
 2. After saving it, you are ready to upload your docker container. Choose the container tab, and upload your container. You can also overwrite your container by uploading a new one. That means that when you make changes to your algorithm, you could overwrite your container and submit the updated version of your algorithm to node21:
     ![alt text](https://github.com/DIAGNijmegen/node21/blob/main/images/gen_algorithm_uploadcontainer.PNG)
 
-3. OPTIONAL: Please note that it can take a while (several minutes) until the container becomes active. Once it becomes active, we suggest that you try out the algorithm to verify everything works as expected. For this, please click on *Try-out Algorithm* tab, and upload a *Generic Medical Image* and paste your *nodules.json* file. You could upload the image and nodules.json given in the test folder which represents how test data would look like during evaluation.
+3. OPTIONAL: Please note that it can take a while (several minutes) until the container becomes active. Once it becomes active, we suggest that you try out the algorithm to verify everything works as expected. For this, please click on *Try-out Algorithm* tab, and upload a *Generic Medical Image* and paste your *nodules.json* file. To paste your nodules.json content, please click on tree and select "code" then paste the content of your json file. You could upload the image and nodules.json given in the test folder which represents how test data would look like during evaluation.
   ![alt text](https://github.com/DIAGNijmegen/node21/blob/main/images/gen_algorithm_tryout.PNG)
 4. OPTIONAL: You could look at the results of your algorithm: click on the *Results*, and *Open Result in Viewer* to visualize the results. You would be directed to CIRRUS viewer, and the results will be visualized with the predicted bounding boxes on chest x-ray images as below. You could move to the next and previous slice (slice is a chest x-ray in this case) by clicking on the up and down arrow in the keyboard.
     ![alt text](https://github.com/DIAGNijmegen/node21/blob/main/images/gen_algorithm_results.PNG)

@@ -72,7 +72,7 @@ class Nodulegeneration(SegmentationAlgorithm):
                     pd_data[pd_data['diameter']>int((required_diameter/10))]['img_name'].values
                     
                 index_ct = random.randint(0, len(ct_names)-1)
-                path_nodule = '/opt/algorithm/nodule_patch/' if execute_in_docker else 'nodule_patch/'
+                path_nodule = '/opt/algorithm/nodule_patches/' if execute_in_docker else 'nodule_patches/'
                 X_ct_2d_resampled, diameter = process_CT_patches(os.path.join(path_nodule,ct_names[index_ct]), os.path.join(path_nodule, ct_names[index_ct].replace('dcm','seg')), required_diameter)
                 
                 crop = cxr_img_scaled[x_min:x_max, y_min:y_max].copy()
